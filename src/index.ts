@@ -9,6 +9,8 @@ export interface Env {
   ADMIN_USER: string;
   ADMIN_PASSWORD: string;
   SESSION_SECRET: string;
+  GA4_PROPERTY_ID?: string;
+  GA4_SA_JSON_B64?: string;
 }
 
 const html = (s: string, status = 200) => new Response(s, { status, headers: { 'content-type': 'text/html; charset=utf-8' } });
