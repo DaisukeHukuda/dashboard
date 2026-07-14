@@ -34,3 +34,20 @@ describe('renderTrendChart', () => {
     expect((svg.match(/<rect/g) ?? []).length).toBeGreaterThanOrEqual(2);
   });
 });
+
+describe('renderTrendChart with prior', () => {
+  it('draws a second (prior-year) polyline when prior provided', () => {
+    const points = [
+      { bucket: '2024-06', label: '2024-06', bookings: 2, revenue: 3000 },
+      { bucket: '2024-07', label: '2024-07', bookings: 1, revenue: 500 },
+    ];
+    const svg = renderTrendChart(points, [1, null]);
+    // 現在の件数線 + 前年線 = polyline 2本
+    expect((svg.match(/<polyline/g) ?? []).length).toBe(2);
+  });
+  it('draws a single polyline when prior omitted or all null', () => {
+    const points = [{ bucket: '2024-06', label: '2024-06', bookings: 2, revenue: 3000 }];
+    expect((renderTrendChart(points).match(/<polyline/g) ?? []).length).toBe(1);
+    expect((renderTrendChart(points, [null]).match(/<polyline/g) ?? []).length).toBe(1);
+  });
+});

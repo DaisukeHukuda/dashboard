@@ -61,7 +61,7 @@ export interface DashboardData {
   period: Period; kpi: Kpi; trend: TrendPoint[]; heatmap: Heatmap;
   courses: string[]; selectedCourse: string; cohorts: CohortRow[];
   courseRows: CourseRow[]; weather: WeatherJoin; insights: string[];
-  granularity: 'month' | 'week';
+  granularity: 'month' | 'week'; trendPrior: (number | null)[];
 }
 
 function periodSelect(period: Period): string {
@@ -93,6 +93,15 @@ export function renderDashboard(d: DashboardData): string {
 
   const insightList = d.insights.map(s => `<li style="margin:4px 0">${esc(s)}</li>`).join('');
 
+  const gToggle = (g: 'month' | 'week', label: string) => {
+    const params = new URLSearchParams();
+    params.set('period', d.period.kind === 'year' ? d.period.start.slice(0, 4) : d.period.kind);
+    if (g !== 'month') params.set('g', g);
+    if (d.selectedCourse) params.set('course', d.selectedCourse);
+    const active = d.granularity === g;
+    return `<a href="/?${params.toString()}" style="font-size:12px;padding:2px 8px;border-radius:6px;text-decoration:none;${active ? 'background:var(--accent);color:#fff' : 'color:var(--accent)'}">${esc(label)}</a>`;
+  };
+
   const body = `<header>Sup! Sup! マーケ分析ダッシュボード <a href="/logout" style="color:#cbd5e1;font-size:12px;float:right">ログアウト</a></header>
 <main>
 <div class="card" style="display:flex;justify-content:space-between;align-items:center">${periodSelect(d.period)}<span style="font-size:12px;color:var(--muted)">${esc(d.period.label)}</span></div>
@@ -101,7 +110,10 @@ export function renderDashboard(d: DashboardData): string {
 
 <div class="card"><h2>戦略インサイト</h2><ul style="margin:0;padding-left:18px;font-size:14px">${insightList}</ul></div>
 
-<div class="card"><h2>売上・予約トレンド（棒=売上 / 線=件数）</h2>${renderTrendChart(d.trend)}</div>
+<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+<h2 style="margin:0">売上・予約トレンド（棒=売上 / 線=件数）</h2>
+<span>${gToggle('month', '月次')} ${gToggle('week', '週次')}</span></div>
+${renderTrendChart(d.trend, d.trendPrior)}</div>
 
 <div class="card"><h2>季節 × 曜日ヒートマップ</h2>
 <form method="get" style="margin-bottom:8px">

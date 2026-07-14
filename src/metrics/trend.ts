@@ -1,5 +1,5 @@
 import type { HistoryRecord } from '../types.js';
-import { type Period, filterPeriod } from '../period.js';
+import { type Period, filterPeriod, priorYear } from '../period.js';
 import { ymOf } from '../util.js';
 
 export interface TrendPoint { bucket: string; label: string; bookings: number; revenue: number; }
@@ -25,4 +25,17 @@ export function computeTrend(all: HistoryRecord[], period: Period, granularity: 
   return [...map.entries()]
     .sort((a, b) => (a[0] < b[0] ? -1 : 1))
     .map(([bucket, v]) => ({ bucket, label: bucket, bookings: v.bookings, revenue: v.revenue }));
+}
+
+// 各 current バケットに対応する前年同月の件数を返す（月次のみ。週次は年で週境界がずれるため全null）。
+export function priorYearSeries(
+  all: HistoryRecord[], period: Period, gran: 'month' | 'week', points: TrendPoint[],
+): (number | null)[] {
+  if (gran !== 'month') return points.map(() => null);
+  const prior = computeTrend(all, priorYear(period), 'month');
+  const map = new Map(prior.map(p => [p.bucket, p.bookings]));
+  return points.map(p => {
+    const [y, m] = p.bucket.split('-');
+    return map.get(`${Number(y) - 1}-${m}`) ?? null;
+  });
 }

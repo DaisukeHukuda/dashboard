@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeTrend } from '../src/metrics/trend.js';
+import { computeTrend, priorYearSeries } from '../src/metrics/trend.js';
 import { resolvePeriod } from '../src/period.js';
 import type { HistoryRecord } from '../src/types.js';
 
@@ -28,5 +28,26 @@ describe('computeTrend week', () => {
     expect(t[0].revenue).toBe(300);
     expect(t[1].bucket).toBe('2023-06-12');
     expect(t[1].revenue).toBe(300);
+  });
+});
+
+describe('priorYearSeries', () => {
+  const all = [
+    { date: '2023-06-05', course: 'A', pax: 1, amount: 1, status: 's', phoneHash: '' },
+    { date: '2024-06-10', course: 'A', pax: 1, amount: 1, status: 's', phoneHash: '' },
+    { date: '2024-06-20', course: 'A', pax: 1, amount: 1, status: 's', phoneHash: '' },
+  ];
+  it('maps current month bucket to prior-year count (monthly)', () => {
+    const p = resolvePeriod('2024', '2025-01-01');
+    const points = computeTrend(all, p, 'month'); // ['2024-06'] with bookings 2
+    const prior = priorYearSeries(all, p, 'month', points);
+    expect(prior).toEqual([1]); // 2023-06 had 1 booking
+  });
+  it('returns nulls for weekly granularity', () => {
+    const p = resolvePeriod('2024', '2025-01-01');
+    const points = computeTrend(all, p, 'week');
+    const prior = priorYearSeries(all, p, 'week', points);
+    expect(prior.every(x => x === null)).toBe(true);
+    expect(prior).toHaveLength(points.length);
   });
 });

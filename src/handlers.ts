@@ -5,7 +5,7 @@ import { getHistory } from './data.js';
 import { resolvePeriod } from './period.js';
 import { jstToday } from './util.js';
 import { computeKpi } from './metrics/kpi.js';
-import { computeTrend } from './metrics/trend.js';
+import { computeTrend, priorYearSeries } from './metrics/trend.js';
 import { computeHeatmap, courseList } from './metrics/heatmap.js';
 import { computeCohorts } from './metrics/cohort.js';
 import { computeCourseBreakdown } from './metrics/course.js';
@@ -51,6 +51,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
   const all = await getHistory(env.DATA);
   const kpi = computeKpi(all, period);
   const trend = computeTrend(all, period, gran);
+  const trendPrior = priorYearSeries(all, period, gran, trend);
   const heatmap = computeHeatmap(all, period, selectedCourse || undefined);
   const courses = courseList(all, period);
   const cohorts = computeCohorts(all, 12);
@@ -66,6 +67,6 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
   const insights = buildInsights({ kpi, heatmap, weather, trend });
 
   return html(renderDashboard({
-    period, kpi, trend, heatmap, courses, selectedCourse, cohorts, courseRows, weather, insights, granularity: gran,
+    period, kpi, trend, heatmap, courses, selectedCourse, cohorts, courseRows, weather, insights, granularity: gran, trendPrior,
   }));
 }

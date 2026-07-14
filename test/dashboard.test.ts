@@ -31,6 +31,8 @@ describe('dashboard rendering', () => {
     expect(html).toContain('KPI');
     expect(html).toContain('<svg');
     expect(html).toContain('コース');
+    expect(html).toContain('月次');
+    expect(html).toContain('週次');
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
