@@ -11,6 +11,8 @@ export interface Env {
   SESSION_SECRET: string;
   GA4_PROPERTY_ID?: string;
   GA4_SA_JSON_B64?: string;
+  IG_ACCESS_TOKEN?: string;
+  IG_USER_ID?: string;
 }
 
 const html = (s: string, status = 200) => new Response(s, { status, headers: { 'content-type': 'text/html; charset=utf-8' } });
