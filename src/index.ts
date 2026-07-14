@@ -1,4 +1,7 @@
 import type { KV } from './kv.js';
+import { verifySession } from './auth.js';
+import { handleLogin, handleLogout, handleHome } from './handlers.js';
+import { loginPage } from './pages.js';
 
 export interface Env {
   DATA: KV;
@@ -8,13 +11,30 @@ export interface Env {
   SESSION_SECRET: string;
 }
 
-async function handle(req: Request, _env: Env): Promise<Response> {
+const html = (s: string, status = 200) => new Response(s, { status, headers: { 'content-type': 'text/html; charset=utf-8' } });
+
+function getCookie(req: Request, name: string): string | null {
+  const cookie = req.headers.get('cookie') ?? '';
+  const m = cookie.match(new RegExp(`(?:^|; )${name}=([^;]+)`));
+  return m ? m[1] : null;
+}
+
+async function handle(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
-  if (url.pathname === '/robots.txt') {
-    return new Response('User-agent: *\nDisallow: /\n', {
-      headers: { 'content-type': 'text/plain; charset=utf-8' },
-    });
+  const path = url.pathname;
+  const method = req.method;
+
+  if (path === '/robots.txt') {
+    return new Response('User-agent: *\nDisallow: /\n', { headers: { 'content-type': 'text/plain; charset=utf-8' } });
   }
+  if (path === '/login' && method === 'POST') return handleLogin(req, env);
+  if (path === '/logout') return handleLogout();
+
+  const token = getCookie(req, 'sess');
+  const user = token ? await verifySession(token, env.SESSION_SECRET) : null;
+  if (!user) return html(loginPage());
+
+  if (path === '/' && method === 'GET') return handleHome(url, env, user.username);
   return new Response('not found', { status: 404 });
 }
 
