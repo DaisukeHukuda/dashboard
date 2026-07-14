@@ -16,7 +16,7 @@ Sup! Sup! マーケティング分析ダッシュボード（Phase 1）。
 `.dev.vars` に ADMIN_USER/ADMIN_PASSWORD/SESSION_SECRET を置き、`npx wrangler dev`。
 
 ## 前提（sync 側）
-sync の GitHub Secrets に `HISTORY_SALT` を設定（電話ハッシュのソルト）。未設定でも既定値で動くが、本番は必ず設定する。
+sync の GitHub Secrets に `HISTORY_SALT`（電話ハッシュのソルト）を**必ず設定する**。未設定の場合、sync は履歴公開を中止する（公開既定ソルトで電話ハッシュを弱めないための安全策）。カレンダー同期・repeats 公開には影響しない。
 
 ## 依存関係
 - web の `/ingest-history` が `history:latest` を書く（web 側 Task 6）。
