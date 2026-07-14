@@ -20,6 +20,12 @@ import { CHANNEL_SPEC, SOURCE_MEDIUM_SPEC, TOP_PAGES_SPEC, DEVICE_SPEC, REGION_S
 import { computeTrafficOverlay } from './metrics/traffic.js';
 import { buildGa4Insights } from './ga4/insights.js';
 import type { TrafficData } from './ga4/section.js';
+import { igGet } from './ig/client.js';
+import { parseInsightSeries, parseMediaList, parseMediaInsights, buildPostRows } from './ig/reports.js';
+import { recordFollowerSnapshot, getFollowerSeries } from './ig/followers.js';
+import { computeSocialOverlay } from './metrics/social.js';
+import { buildIgInsights } from './ig/insights.js';
+import type { SocialData } from './ig/section.js';
 type WeatherJoinCat = { category: WxCategory; days: number; avgBookings: number };
 
 const SESSION_TTL = 7 * 24 * 3600;
@@ -98,7 +104,37 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
     } catch { traffic = emptyTraffic; }
   }
 
+  // IG 未設定/失敗時は Phase 1/2 を退行させず未接続表示にフォールバック
+  const emptySocial: SocialData = { followers: [], reach: [], posts: [], overlay: [], insights: [], connected: false };
+  let social: SocialData = emptySocial;
+  if (env.IG_ACCESS_TOKEN && env.IG_USER_ID) {
+    try {
+      const uid = env.IG_USER_ID;
+      const today = jstToday();
+      // アカウント: フォロワー数＋日次スナップショット
+      const acct = await igGet(env, uid, { fields: 'followers_count' }) as { followers_count?: number };
+      if (typeof acct.followers_count === 'number') await recordFollowerSnapshot(env, acct.followers_count, today);
+      const followers = await getFollowerSeries(env);
+      // リーチ（期間指定）
+      const reachJson = await igGet(env, `${uid}/insights`, { metric: 'reach', period: 'day', since: period.start, until: period.end });
+      const reach = parseInsightSeries(reachJson, 'reach');
+      // 投稿一覧＋上位のinsights
+      const mediaJson = await igGet(env, `${uid}/media`, { fields: 'id,caption,timestamp,media_type,permalink', limit: '25' });
+      const media = parseMediaList(mediaJson);
+      const insightsById: Record<string, { reach: number; likes: number; comments: number; saved: number }> = {};
+      for (const m of media.slice(0, 12)) {
+        try {
+          const mi = await igGet(env, `${m.id}/insights`, { metric: 'reach,likes,comments,saved' });
+          insightsById[m.id] = parseMediaInsights(mi);
+        } catch { /* 個別投稿の失敗は無視 */ }
+      }
+      const posts = buildPostRows(media, insightsById);
+      const overlay = computeSocialOverlay(all, period, media);
+      social = { followers, reach, posts, overlay, insights: buildIgInsights({ followers, posts, overlay }), connected: true };
+    } catch { social = emptySocial; }
+  }
+
   return html(renderDashboard({
-    period, kpi, trend, heatmap, courses, selectedCourse, cohorts, courseRows, weather, insights, granularity: gran, trendPrior, traffic,
+    period, kpi, trend, heatmap, courses, selectedCourse, cohorts, courseRows, weather, insights, granularity: gran, trendPrior, traffic, social,
   }));
 }
