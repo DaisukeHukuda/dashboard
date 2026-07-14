@@ -1,6 +1,20 @@
 import type { Env } from './index.js';
 import { createSession, constantEquals } from './auth.js';
-import { layout, loginPage } from './pages.js';
+import { loginPage, renderDashboard } from './pages.js';
+import { getHistory } from './data.js';
+import { resolvePeriod } from './period.js';
+import { jstToday } from './util.js';
+import { computeKpi } from './metrics/kpi.js';
+import { computeTrend } from './metrics/trend.js';
+import { computeHeatmap, courseList } from './metrics/heatmap.js';
+import { computeCohorts } from './metrics/cohort.js';
+import { computeCourseBreakdown } from './metrics/course.js';
+import { fetchWeather } from './weather.js';
+import { computeWeatherJoin } from './metrics/weatherjoin.js';
+import type { WeatherJoin } from './metrics/weatherjoin.js';
+import { buildInsights } from './metrics/insights.js';
+import type { WxCategory } from './weather.js';
+type WeatherJoinCat = { category: WxCategory; days: number; avgBookings: number };
 
 const SESSION_TTL = 7 * 24 * 3600;
 const html = (s: string, status = 200) => new Response(s, { status, headers: { 'content-type': 'text/html; charset=utf-8' } });
@@ -29,7 +43,29 @@ export function handleLogout(): Response {
   });
 }
 
-// Task 18 で本実装に差し替える
-export async function handleHome(_url: URL, _env: Env, username: string): Promise<Response> {
-  return html(layout('ダッシュボード｜Sup! Sup!', `<header>Sup! Sup! マーケ分析</header><main><div class="card"><h2>ダッシュボード</h2><p>ようこそ、${username} さん</p></div></main>`));
+export async function handleHome(url: URL, env: Env, _username: string): Promise<Response> {
+  const period = resolvePeriod(url.searchParams.get('period'), jstToday());
+  const selectedCourse = url.searchParams.get('course') ?? '';
+  const gran = url.searchParams.get('g') === 'week' ? 'week' : 'month';
+
+  const all = await getHistory(env.DATA);
+  const kpi = computeKpi(all, period);
+  const trend = computeTrend(all, period, gran);
+  const heatmap = computeHeatmap(all, period, selectedCourse || undefined);
+  const courses = courseList(all, period);
+  const cohorts = computeCohorts(all, 12);
+  const courseRows = computeCourseBreakdown(all, period);
+
+  // 天候は失敗してもダッシュボードは描画する
+  let weather: WeatherJoin = { rainyAvg: 0, dryAvg: 0, dropPct: null, byCategory: [] as WeatherJoinCat[] };
+  try {
+    const wx = await fetchWeather(env.DASH, period.start, period.end);
+    weather = computeWeatherJoin(all, period, wx);
+  } catch { /* 天候取得失敗時は空表示 */ }
+
+  const insights = buildInsights({ kpi, heatmap, weather, trend });
+
+  return html(renderDashboard({
+    period, kpi, trend, heatmap, courses, selectedCourse, cohorts, courseRows, weather, insights, granularity: gran,
+  }));
 }

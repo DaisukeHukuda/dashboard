@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import worker, { type Env } from '../src/index.js';
 
 function fakeKV() {
@@ -29,6 +29,8 @@ describe('routing', () => {
     expect(res.status).toBe(401);
   });
   it('logs in and reaches dashboard with the session cookie', async () => {
+    // handleHome が天候取得を試みるため、ネットワークに出ないようスタブする
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ daily: { time: [], weathercode: [], temperature_2m_max: [], precipitation_sum: [] } }) }));
     const form = new URLSearchParams({ username: 'admin', password: 'pw' });
     const login = await worker.fetch(new Request('https://x/login', { method: 'POST', body: form }), env);
     expect(login.status).toBe(302);
@@ -37,5 +39,6 @@ describe('routing', () => {
     const home = await worker.fetch(new Request('https://x/', { headers: { cookie } }), env);
     expect(home.status).toBe(200);
     expect(await home.text()).toContain('ダッシュボード');
+    vi.restoreAllMocks();
   });
 });
