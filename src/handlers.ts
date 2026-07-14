@@ -15,6 +15,7 @@ import type { WeatherJoin } from './metrics/weatherjoin.js';
 import { buildInsights } from './metrics/insights.js';
 import type { WxCategory } from './weather.js';
 import { runReport } from './ga4/client.js';
+import { getAccessToken } from './ga4/auth.js';
 import { CHANNEL_SPEC, SOURCE_MEDIUM_SPEC, TOP_PAGES_SPEC, DEVICE_SPEC, REGION_SPEC, DAILY_SESSIONS_SPEC, toNameValues, toDailySessions } from './ga4/reports.js';
 import { computeTrafficOverlay } from './metrics/traffic.js';
 import { buildGa4Insights } from './ga4/insights.js';
@@ -76,6 +77,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
   let traffic: TrafficData = emptyTraffic;
   if (env.GA4_SA_JSON_B64 && env.GA4_PROPERTY_ID) {
     try {
+      await getAccessToken(env);
       const range = { start: period.start, end: period.end };
       const [ch, sm, tp, dv, rg, ds] = await Promise.all([
         runReport(env, CHANNEL_SPEC, range),

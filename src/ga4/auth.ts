@@ -22,6 +22,7 @@ export async function getAccessToken(
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: body.toString(),
+    signal: AbortSignal.timeout(8000),
   });
   if (!resp.ok) throw new Error(`ga4 token failed: HTTP ${resp.status}`);
   const j = await resp.json() as { access_token: string; expires_in?: number };

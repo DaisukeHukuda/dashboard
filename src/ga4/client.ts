@@ -29,6 +29,7 @@ export async function runReport(
       metrics: spec.metrics.map(name => ({ name })),
       limit: spec.limit ?? 20,
     }),
+    signal: AbortSignal.timeout(8000),
   });
   if (!resp.ok) throw new Error(`ga4 runReport failed: HTTP ${resp.status}`);
   const rows = parseRows(await resp.json() as { rows?: Ga4ApiRow[] });
