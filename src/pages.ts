@@ -9,6 +9,7 @@ import { renderTrendChart } from './charts/line.js';
 import { renderCourseBars } from './charts/bar.js';
 import { renderHeatmap } from './charts/heatmap.js';
 import { renderCohortGrid } from './charts/cohortgrid.js';
+import { renderTrafficSection, type TrafficData } from './ga4/section.js';
 
 export function esc(s: string): string {
   return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
@@ -62,6 +63,7 @@ export interface DashboardData {
   courses: string[]; selectedCourse: string; cohorts: CohortRow[];
   courseRows: CourseRow[]; weather: WeatherJoin; insights: string[];
   granularity: 'month' | 'week'; trendPrior: (number | null)[];
+  traffic: TrafficData;
 }
 
 function periodSelect(period: Period): string {
@@ -126,6 +128,8 @@ ${renderTrendChart(d.trend, d.trendPrior)}</div>
 <div class="card"><h2>リピーター・コホート再訪率（初回月別・全期間）</h2>${renderCohortGrid(d.cohorts)}</div>
 
 <div class="card"><h2>コース別内訳</h2>${renderCourseBars(d.courseRows)}</div>
+
+${renderTrafficSection(d.traffic)}
 </main>`;
   return layout('ダッシュボード｜Sup! Sup! マーケ分析', body);
 }
