@@ -3,7 +3,7 @@ import { createSession, constantEquals } from './auth.js';
 import { loginPage, renderDashboard } from './pages.js';
 import { getHistory } from './data.js';
 import { resolvePeriod } from './period.js';
-import { jstToday } from './util.js';
+import { jstToday, addDaysToYmd } from './util.js';
 import { computeKpi } from './metrics/kpi.js';
 import { computeTrend, priorYearSeries } from './metrics/trend.js';
 import { computeHeatmap, courseList } from './metrics/heatmap.js';
@@ -26,6 +26,7 @@ import { recordFollowerSnapshot, getFollowerSeries } from './ig/followers.js';
 import { computeSocialOverlay } from './metrics/social.js';
 import { buildIgInsights } from './ig/insights.js';
 import type { SocialData } from './ig/section.js';
+import type { IgSeriesPoint, IgPostRow } from './ig/types.js';
 type WeatherJoinCat = { category: WxCategory; days: number; avgBookings: number };
 
 const SESSION_TTL = 7 * 24 * 3600;
@@ -110,25 +111,36 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
   if (env.IG_ACCESS_TOKEN && env.IG_USER_ID) {
     try {
       const uid = env.IG_USER_ID;
-      const today = jstToday();
-      // アカウント: フォロワー数＋日次スナップショット
+      // アカウント取得＝接続判定。ここが失敗したら本当に未接続（外側catchでemptySocialに落ちる）
       const acct = await igGet(env, uid, { fields: 'followers_count' }) as { followers_count?: number };
-      if (typeof acct.followers_count === 'number') await recordFollowerSnapshot(env, acct.followers_count, today);
+      if (typeof acct.followers_count === 'number') await recordFollowerSnapshot(env, acct.followers_count, jstToday());
       const followers = await getFollowerSeries(env);
-      // リーチ（期間指定）
-      const reachJson = await igGet(env, `${uid}/insights`, { metric: 'reach', period: 'day', since: period.start, until: period.end });
-      const reach = parseInsightSeries(reachJson, 'reach');
-      // 投稿一覧＋上位のinsights
-      const mediaJson = await igGet(env, `${uid}/media`, { fields: 'id,caption,timestamp,media_type,permalink', limit: '25' });
-      const media = parseMediaList(mediaJson);
-      const insightsById: Record<string, { reach: number; likes: number; comments: number; saved: number }> = {};
-      for (const m of media.slice(0, 12)) {
-        try {
-          const mi = await igGet(env, `${m.id}/insights`, { metric: 'reach,likes,comments,saved' });
-          insightsById[m.id] = parseMediaInsights(mi);
-        } catch { /* 個別投稿の失敗は無視 */ }
-      }
-      const posts = buildPostRows(media, insightsById);
+
+      // リーチは独立して失敗を吸収（失敗しても接続は維持）。期間は<=30日にクランプ（IG insightsの制限）
+      let reach: IgSeriesPoint[] = [];
+      try {
+        const reachSince = period.start > addDaysToYmd(period.end, -29) ? period.start : addDaysToYmd(period.end, -29);
+        const reachJson = await igGet(env, `${uid}/insights`, { metric: 'reach', period: 'day', since: reachSince, until: period.end });
+        reach = parseInsightSeries(reachJson, 'reach');
+      } catch { /* reach失敗は無視（他は表示） */ }
+
+      // 投稿一覧＋上位insightsも独立
+      let posts: IgPostRow[] = [];
+      let media: { timestamp: string }[] = [];
+      try {
+        const mediaJson = await igGet(env, `${uid}/media`, { fields: 'id,caption,timestamp,media_type,permalink', limit: '25' });
+        const mediaList = parseMediaList(mediaJson);
+        media = mediaList;
+        const top = mediaList.slice(0, 12);
+        const pairs = await Promise.all(top.map(async m => {
+          try { return [m.id, parseMediaInsights(await igGet(env, `${m.id}/insights`, { metric: 'reach,likes,comments,saved' }))] as const; }
+          catch { return null; }
+        }));
+        const insightsById: Record<string, { reach: number; likes: number; comments: number; saved: number }> = {};
+        for (const p of pairs) if (p) insightsById[p[0]] = p[1];
+        posts = buildPostRows(mediaList, insightsById);
+      } catch { /* media失敗は無視 */ }
+
       const overlay = computeSocialOverlay(all, period, media);
       social = { followers, reach, posts, overlay, insights: buildIgInsights({ followers, posts, overlay }), connected: true };
     } catch { social = emptySocial; }

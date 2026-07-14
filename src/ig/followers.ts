@@ -9,6 +9,8 @@ export async function recordFollowerSnapshot(env: Env, count: number, today: str
   await env.DASH.put(key, String(count));
 }
 
+// KV の list は結果整合性（eventually consistent）のため、同一リクエスト内で書き込んだ
+// スナップショットが直後の list には反映されないことがある（次回ロード時に自然に解消する）。
 export async function getFollowerSeries(env: Env): Promise<{ date: string; count: number }[]> {
   const { keys } = await env.DASH.list({ prefix: PREFIX });
   const out: { date: string; count: number }[] = [];

@@ -17,7 +17,8 @@ export function buildIgInsights(input: {
     const top = input.posts[0]; // engagement 降順済み
     const cap = top.caption ? `「${top.caption.slice(0, 20)}」` : '(キャプションなし)';
     out.push(`最もエンゲージメントが高い投稿は ${cap}（いいね${top.likes}/コメント${top.comments}/保存${top.saved}）。`);
-    const avg = Math.round(input.posts.reduce((s, p) => s + p.engagement, 0) / input.posts.length);
+    const withSignal = input.posts.filter(p => p.reach > 0 || p.likes > 0 || p.comments > 0 || p.saved > 0);
+    const avg = withSignal.length ? Math.round(withSignal.reduce((s, p) => s + p.engagement, 0) / withSignal.length) : 0;
     out.push(`直近投稿の平均エンゲージメントは ${avg}。`);
   }
   return out;
