@@ -22,7 +22,7 @@ export async function fetchWeather(kv: KV, start: string, end: string, fetchImpl
   const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${LAT}&longitude=${LON}`
     + `&start_date=${start}&end_date=${end}`
     + `&daily=weathercode,temperature_2m_max,precipitation_sum&timezone=Asia%2FTokyo`;
-  const resp = await fetchImpl(url);
+  const resp = await fetchImpl(url, { signal: AbortSignal.timeout(5000) });
   if (!resp.ok) throw new Error(`weather fetch failed: HTTP ${resp.status}`);
   const body = await resp.json() as { daily?: { time: string[]; weathercode: number[]; temperature_2m_max: number[]; precipitation_sum: number[] } };
   const d = body.daily;

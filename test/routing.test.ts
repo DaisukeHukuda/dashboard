@@ -40,5 +40,6 @@ describe('routing', () => {
     expect(home.status).toBe(200);
     expect(await home.text()).toContain('ダッシュボード');
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 });

@@ -111,7 +111,7 @@ export function renderDashboard(d: DashboardData): string {
 
 <div class="card"><h2>天候相関</h2>${renderWeatherBlock(d.weather)}</div>
 
-<div class="card"><h2>リピーター・コホート再訪率（初回月別）</h2>${renderCohortGrid(d.cohorts)}</div>
+<div class="card"><h2>リピーター・コホート再訪率（初回月別・全期間）</h2>${renderCohortGrid(d.cohorts)}</div>
 
 <div class="card"><h2>コース別内訳</h2>${renderCourseBars(d.courseRows)}</div>
 </main>`;

@@ -32,5 +32,6 @@ describe('dashboard rendering', () => {
     expect(html).toContain('<svg');
     expect(html).toContain('コース');
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 });
