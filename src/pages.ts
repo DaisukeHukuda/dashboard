@@ -122,7 +122,9 @@ function renderWeatherBlock(w: WeatherJoin): string {
   const rows = w.byCategory.map(c =>
     `<tr><td style="padding:2px 10px">${esc(c.category)}</td><td style="padding:2px 10px;text-align:right">${c.days}日</td><td style="padding:2px 10px;text-align:right">${c.avgBookings.toFixed(1)}件/日</td></tr>`
   ).join('');
-  const drop = w.dropPct !== null ? `雨・雪の日は好天比 <b>-${Math.round(w.dropPct * 100)}%</b>` : '天候データが不足しています';
+  const drop = w.dropPct !== null
+    ? `雨・雪の日は好天比 <b>${w.dropPct >= 0 ? '-' : '+'}${Math.round(Math.abs(w.dropPct) * 100)}%</b>`
+    : '天候データが不足しています';
   return `<p style="font-size:14px;margin:0 0 8px">${drop}</p>
 <table style="font-size:13px;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:2px 10px">天候</th><th style="padding:2px 10px">日数</th><th style="padding:2px 10px">平均予約</th></tr></thead><tbody>${rows}</tbody></table>`;
 }

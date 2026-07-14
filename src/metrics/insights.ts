@@ -32,7 +32,11 @@ export function buildInsights(input: { kpi: Kpi; heatmap: Heatmap; weather: Weat
   }
 
   if (weather.dropPct !== null && weather.dryAvg > 0) {
-    out.push(`雨・雪の日は晴・曇の日より平均 -${pct(weather.dropPct)}（雨天 ${weather.rainyAvg.toFixed(1)} 件/日 vs 好天 ${weather.dryAvg.toFixed(1)} 件/日）。`);
+    // dropPct>0 は好天比で予約が減る＝雨天の落ち込み。負なら逆に増える（符号の二重表示を避ける）。
+    const wd = weather.dropPct >= 0
+      ? `平均 -${pct(weather.dropPct)}`
+      : `平均 +${pct(-weather.dropPct)}`;
+    out.push(`雨・雪の日は晴・曇の日より${wd}（雨天 ${weather.rainyAvg.toFixed(1)} 件/日 vs 好天 ${weather.dryAvg.toFixed(1)} 件/日）。`);
   }
 
   return out;
