@@ -4,5 +4,5 @@ compatibility_date = "2024-09-23"
 
 kv_namespaces = [
   { binding = "DATA", id = "a237d8666bc742419b1805c6dc40017d" },
-  { binding = "DASH", id = "REPLACE_AFTER_kv_namespace_create" },
+  { binding = "DASH", id = "02774304b1ef4eadbe3e1628ff26a397" },
 ]
