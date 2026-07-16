@@ -1,5 +1,12 @@
 # Go-Live ランブック（マーケダッシュボード 本番反映）
 
+> ## 実施状況（2026-07-16 更新）
+> - ✅ **Step 1 完了**: web デプロイ済み（/ingest-history=401確認・トップ200＝ビューアー無事）
+> - 🔶 **Step 2 一部完了**: sync push 済み（`58975f7`）。**残り＝ 2-A（HISTORY_SALT Secret作成）と 2-B（sync.yml の env に2行追加・GitHub Webエディタ）と 2-D（初回履歴投入）**。これが終わるまでダッシュボードは全カード0件表示
+> - ✅ **Step 3 完了**: DASH KV作成（`02774304…`）・Secrets 3点設定・デプロイ・ログイン〜全カード描画をE2E確認済み。URL: `https://supsup-dashboard.ymty.workers.dev`
+> - ⬜ **Step 4 未了**: GA4（SAを閲覧者追加＋Secrets 2点）
+> - ⬜ **Step 5 未了**: Instagram（FBアプリ＋長期トークン＋Secrets 2点）
+
 Phase 1〜3 のコードは完成済み。本番で動かすための**ユーザー作業**を、正しい順番で記載する。
 上から順に実行すること（依存関係がある）。各ステップに**確認方法**を付けた。
 
