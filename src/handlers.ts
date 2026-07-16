@@ -9,6 +9,7 @@ import { computeTrend, priorYearSeries } from './metrics/trend.js';
 import { computeHeatmap, courseList } from './metrics/heatmap.js';
 import { computeCohorts } from './metrics/cohort.js';
 import { computeCourseBreakdown } from './metrics/course.js';
+import { computeSourceBreakdown } from './metrics/source.js';
 import { fetchWeather } from './weather.js';
 import { computeWeatherJoin } from './metrics/weatherjoin.js';
 import type { WeatherJoin } from './metrics/weatherjoin.js';
@@ -69,6 +70,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
   const courses = courseList(all, period);
   const cohorts = computeCohorts(all, 12);
   const courseRows = computeCourseBreakdown(all, period);
+  const sourceRows = computeSourceBreakdown(all, period);
 
   // 天候は失敗してもダッシュボードは描画する
   let weather: WeatherJoin = { rainyAvg: 0, dryAvg: 0, dropPct: null, byCategory: [] as WeatherJoinCat[] };
@@ -147,6 +149,6 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
   }
 
   return html(renderDashboard({
-    period, kpi, trend, heatmap, courses, selectedCourse, cohorts, courseRows, weather, insights, granularity: gran, trendPrior, traffic, social,
+    period, kpi, trend, heatmap, courses, selectedCourse, cohorts, courseRows, sourceRows, weather, insights, granularity: gran, trendPrior, traffic, social,
   }));
 }

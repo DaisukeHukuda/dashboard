@@ -62,7 +62,7 @@ ${sub ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(sub
 export interface DashboardData {
   period: Period; kpi: Kpi; trend: TrendPoint[]; heatmap: Heatmap;
   courses: string[]; selectedCourse: string; cohorts: CohortRow[];
-  courseRows: CourseRow[]; weather: WeatherJoin; insights: string[];
+  courseRows: CourseRow[]; sourceRows: CourseRow[]; weather: WeatherJoin; insights: string[];
   granularity: 'month' | 'week'; trendPrior: (number | null)[];
   traffic: TrafficData;
   social: SocialData;
@@ -130,6 +130,10 @@ ${renderTrendChart(d.trend, d.trendPrior)}</div>
 <div class="card"><h2>リピーター・コホート再訪率（初回月別・全期間）</h2>${renderCohortGrid(d.cohorts)}</div>
 
 <div class="card"><h2>コース別内訳</h2>${renderCourseBars(d.courseRows)}</div>
+
+<div class="card"><h2>流入経路（お客様の自己申告）</h2>
+<p style="font-size:12px;color:var(--muted);margin:0 0 8px">予約時アンケート「ご予約の経緯」を分類したもの。sync 更新前の履歴は「不明」と表示されます。</p>
+${renderCourseBars(d.sourceRows)}</div>
 
 ${renderTrafficSection(d.traffic)}
 
