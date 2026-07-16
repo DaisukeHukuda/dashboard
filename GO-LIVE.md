@@ -2,7 +2,7 @@
 
 > ## 実施状況（2026-07-16 更新）
 > - ✅ **Step 1 完了**: web デプロイ済み（/ingest-history=401確認・トップ200＝ビューアー無事）
-> - 🔶 **Step 2 一部完了**: sync push 済み（`58975f7`）。**残り＝ 2-A（HISTORY_SALT Secret作成）と 2-B（sync.yml の env に2行追加・GitHub Webエディタ）と 2-D（初回履歴投入）**。これが終わるまでダッシュボードは全カード0件表示
+> - ✅ **Step 2 完了（2026-07-16 15:47 JST）**: HISTORY_SALT Secret作成（Claude がAPI経由で登録・64桁ランダム）＋ sync.yml env 2行追加（ユーザーがWebエディタで `3457f67`）＋ 初回履歴投入成功。Actions run 29477499072 で `[sync] history published 3482 records`。KV `history:latest` に 3482件（2017〜2026年・source正規化済み・PIIなし）を実確認。`HISTORY_SYNC_HOURS` は `3` に戻し済み
 > - ✅ **Step 3 完了**: DASH KV作成（`02774304…`）・Secrets 3点設定・デプロイ・ログイン〜全カード描画をE2E確認済み。URL: `https://supsup-dashboard.ymty.workers.dev`
 > - ⬜ **Step 4 未了**: GA4（SAを閲覧者追加＋Secrets 2点）
 > - ⬜ **Step 5 未了**: Instagram（FBアプリ＋長期トークン＋Secrets 2点）
@@ -170,12 +170,12 @@ npx wrangler deploy
 
 ## 完了チェックリスト
 
-- [ ] Step 1: web デプロイ済み（`/ingest-history` が 401 を返す）
-- [ ] Step 2: `HISTORY_SALT` Secret 作成 ＋ **sync.yml の env に追加（Web エディタ）** ＋ sync push
-- [ ] Step 2: Actions ログに `[sync] history published NNNN records`
-- [ ] Step 2: `HISTORY_SYNC_HOURS` を `3` に戻した（または削除）
-- [ ] Step 3: DASH KV 作成＋wrangler.toml 更新／Secrets 3点／deploy
-- [ ] Step 3: ログインして Phase 1 の全カードに実データ
+- [x] Step 1: web デプロイ済み（`/ingest-history` が 401 を返す）
+- [x] Step 2: `HISTORY_SALT` Secret 作成 ＋ **sync.yml の env に追加（Web エディタ）** ＋ sync push
+- [x] Step 2: Actions ログに `[sync] history published NNNN records`（3482件・run 29477499072）
+- [x] Step 2: `HISTORY_SYNC_HOURS` を `3` に戻した（または削除）
+- [x] Step 3: DASH KV 作成＋wrangler.toml 更新／Secrets 3点／deploy
+- [ ] Step 3: ログインして Phase 1 の全カードに実データ（KVには3482件確認済み。**ユーザーがログインして目視確認**）
 - [ ] Step 4: GA4 に SA を閲覧者追加／Secrets 2点／GA4カード表示
 - [ ] Step 5: FBアプリ＋長期トークン／Secrets 2点／IGカード表示
 - [ ] Step 5: トークン更新リマインダ（〜60日後）
