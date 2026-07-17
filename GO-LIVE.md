@@ -4,7 +4,7 @@
 > - ✅ **Step 1 完了**: web デプロイ済み（/ingest-history=401確認・トップ200＝ビューアー無事）
 > - ✅ **Step 2 完了（2026-07-16 15:47 JST）**: HISTORY_SALT Secret作成（Claude がAPI経由で登録・64桁ランダム）＋ sync.yml env 2行追加（ユーザーがWebエディタで `3457f67`）＋ 初回履歴投入成功。Actions run 29477499072 で `[sync] history published 3482 records`。KV `history:latest` に 3482件（2017〜2026年・source正規化済み・PIIなし）を実確認。`HISTORY_SYNC_HOURS` は `3` に戻し済み
 > - ✅ **Step 3 完了**: DASH KV作成（`02774304…`）・Secrets 3点設定・デプロイ・ログイン〜全カード描画をE2E確認済み。URL: `https://supsup-dashboard.ymty.workers.dev`
-> - ⬜ **Step 4 未了**: GA4（SAを閲覧者追加＋Secrets 2点）
+> - ✅ **Step 4 完了（2026-07-17）**: GA4接続済み。ユーザーがSA閲覧者追加＋Analytics Data API有効化（プロジェクト16135446221）、Claude が鍵JSON疎通テスト（sessions_7days=1360取得OK）→ Secrets `GA4_SA_JSON_B64`/`GA4_PROPERTY_ID` 登録 → デプロイ（Version 57a3a607）。※ダッシュボード上のGA4カード表示はユーザー目視確認待ち
 > - ⬜ **Step 5 未了**: Instagram（FBアプリ＋長期トークン＋Secrets 2点）
 
 Phase 1〜3 のコードは完成済み。本番で動かすための**ユーザー作業**を、正しい順番で記載する。
@@ -176,7 +176,7 @@ npx wrangler deploy
 - [x] Step 2: `HISTORY_SYNC_HOURS` を `3` に戻した（または削除）
 - [x] Step 3: DASH KV 作成＋wrangler.toml 更新／Secrets 3点／deploy
 - [ ] Step 3: ログインして Phase 1 の全カードに実データ（KVには3482件確認済み。**ユーザーがログインして目視確認**）
-- [ ] Step 4: GA4 に SA を閲覧者追加／Secrets 2点／GA4カード表示
+- [x] Step 4: GA4 に SA を閲覧者追加／Analytics Data API有効化／Secrets 2点／deploy（カード表示はユーザー目視待ち）
 - [ ] Step 5: FBアプリ＋長期トークン／Secrets 2点／IGカード表示
 - [ ] Step 5: トークン更新リマインダ（〜60日後）
 
