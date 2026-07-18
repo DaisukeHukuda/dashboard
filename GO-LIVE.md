@@ -5,7 +5,7 @@
 > - ✅ **Step 2 完了（2026-07-16 15:47 JST）**: HISTORY_SALT Secret作成（Claude がAPI経由で登録・64桁ランダム）＋ sync.yml env 2行追加（ユーザーがWebエディタで `3457f67`）＋ 初回履歴投入成功。Actions run 29477499072 で `[sync] history published 3482 records`。KV `history:latest` に 3482件（2017〜2026年・source正規化済み・PIIなし）を実確認。`HISTORY_SYNC_HOURS` は `3` に戻し済み
 > - ✅ **Step 3 完了**: DASH KV作成（`02774304…`）・Secrets 3点設定・デプロイ・ログイン〜全カード描画をE2E確認済み。URL: `https://supsup-dashboard.ymty.workers.dev`
 > - ✅ **Step 4 完了（2026-07-17）**: GA4接続済み。ユーザーがSA閲覧者追加＋Analytics Data API有効化（プロジェクト16135446221）、Claude が鍵JSON疎通テスト（sessions_7days=1360取得OK）→ Secrets `GA4_SA_JSON_B64`/`GA4_PROPERTY_ID` 登録 → デプロイ（Version 57a3a607）。※ダッシュボード上のGA4カード表示はユーザー目視確認待ち
-> - ⬜ **Step 5 未了**: Instagram（FBアプリ＋長期トークン＋Secrets 2点）
+> - ✅ **Step 5 完了（2026-07-18）**: Instagram接続済み。Metaアプリ `supsup-inst`（ID 1050110217698332・ユースケース「Instagramでメッセージとコンテンツを管理」のFacebookログイン方式・4権限テスト準備完了）で長期トークン発行→交換（**有効期限 約60日＝2026-09-15頃失効**）。IGユーザーID `17841403433521466`（@supsupnikko・フォロワー3788）。疎通テスト（アカウント/insights/media）合格→ Secrets `IG_ACCESS_TOKEN`/`IG_USER_ID` 登録→デプロイ（Version 31c4bf38）。※トークン再発行時は同アプリのグラフAPIエクスプローラで再生成→交換→Secret更新
 
 Phase 1〜3 のコードは完成済み。本番で動かすための**ユーザー作業**を、正しい順番で記載する。
 上から順に実行すること（依存関係がある）。各ステップに**確認方法**を付けた。
@@ -177,8 +177,8 @@ npx wrangler deploy
 - [x] Step 3: DASH KV 作成＋wrangler.toml 更新／Secrets 3点／deploy
 - [ ] Step 3: ログインして Phase 1 の全カードに実データ（KVには3482件確認済み。**ユーザーがログインして目視確認**）
 - [x] Step 4: GA4 に SA を閲覧者追加／Analytics Data API有効化／Secrets 2点／deploy（カード表示はユーザー目視待ち）
-- [ ] Step 5: FBアプリ＋長期トークン／Secrets 2点／IGカード表示
-- [ ] Step 5: トークン更新リマインダ（〜60日後）
+- [x] Step 5: FBアプリ＋長期トークン／Secrets 2点／deploy（IGカード表示はユーザー目視待ち）
+- [ ] Step 5: トークン更新リマインダ（**2026-09-15頃失効**。9月上旬に再発行→`wrangler secret put IG_ACCESS_TOKEN`）
 
 ## トラブル時の切り分け
 
