@@ -3,6 +3,7 @@ import { igGet } from './client.js';
 import { jstToday } from '../util.js';
 
 const PREFIX = 'ig:followers:';
+export const FOLLOWERS_COOLDOWN_KEY = 'ig:followers:cooldown';
 
 export async function recordFollowerSnapshot(env: Env, count: number, today: string): Promise<void> {
   const key = `${PREFIX}${today}`;
@@ -17,7 +18,15 @@ export async function ensureFollowerSnapshot(env: Env): Promise<void> {
   const key = `${PREFIX}${today}`;
   const existing = await env.DASH.get(key); // 今日のキーが既にあれば何もしない（KV read 1回）
   if (existing !== null) return;
-  const acct = await igGet(env, env.IG_USER_ID ?? '', { fields: 'followers_count' }) as { followers_count?: number };
+  const cooldown = await env.DASH.get(FOLLOWERS_COOLDOWN_KEY); // 直近1時間に失敗していれば再試行しない（毎ビュー8秒の再試行を防ぐ）
+  if (cooldown !== null) return;
+  let acct: { followers_count?: number };
+  try {
+    acct = await igGet(env, env.IG_USER_ID ?? '', { fields: 'followers_count' }) as { followers_count?: number };
+  } catch {
+    await env.DASH.put(FOLLOWERS_COOLDOWN_KEY, '1', { expirationTtl: 3600 }); // 1時間クールダウン
+    return;
+  }
   if (typeof acct.followers_count === 'number') await recordFollowerSnapshot(env, acct.followers_count, today);
 }
 

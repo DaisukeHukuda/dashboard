@@ -117,21 +117,36 @@ describe('routing', () => {
     vi.unstubAllGlobals();
   });
 
-  it('GA4 Secretsのみのenvでも view=bookings ではGA4の外部fetchが発生しない', async () => {
+  it('GA4 SA鍵が正しく設定されたenvでも view=bookings ではGA4の外部fetchが発生せず、view=web では発生する', async () => {
+    // 署名まで到達できる本物のRSA鍵からSA JSONを合成する（test/ga4-auth.test.ts のPEM合成手法を流用）。
+    // 'dummy-base64' のような壊れたSA JSONだと atob() が例外を投げ、gateを消してもfetch前に落ちて
+    // テストが実質無効化される（ゲートの有無を区別できない）ため、正規にparseできる鍵を使う。
+    const pair = await crypto.subtle.generateKey(
+      { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+      true, ['sign', 'verify'],
+    ) as CryptoKeyPair;
+    const pkcs8 = new Uint8Array(await crypto.subtle.exportKey('pkcs8', pair.privateKey) as ArrayBuffer);
+    const pem = `-----BEGIN PRIVATE KEY-----\n${btoa(String.fromCharCode(...pkcs8)).replace(/(.{64})/g, '$1\n')}\n-----END PRIVATE KEY-----\n`;
+    const saJson = JSON.stringify({ client_email: 'svc@p.iam.gserviceaccount.com', private_key: pem });
+
     const envGa4: Env = {
       DATA: fakeKV(), DASH: fakeKV(), ADMIN_USER: 'admin', ADMIN_PASSWORD: 'pw', SESSION_SECRET: 'secret',
-      GA4_SA_JSON_B64: 'dummy-base64', GA4_PROPERTY_ID: '000000',
-      // IG Secretsは入れない（C1のフォロワースナップショットfetchと混ざらないようにするため）
+      GA4_SA_JSON_B64: btoa(saJson), GA4_PROPERTY_ID: '000000',
+      // IG Secretsは入れない（フォロワースナップショットfetchと混ざらないようにするため）
     };
     const form = new URLSearchParams({ username: 'admin', password: 'pw' });
     const login = await worker.fetch(new Request('https://x/login', { method: 'POST', body: form }), envGa4);
     const cookie = cookieOf(login);
-    const spy = vi.fn();
+    const spy = vi.fn().mockResolvedValue({ ok: false, status: 401 }); // 署名は本物だがトークン取得自体は失敗させ、外部通信はここで止める
     vi.stubGlobal('fetch', spy);
 
-    const home = await worker.fetch(new Request('https://x/?view=bookings', { headers: { cookie } }), envGa4);
-    expect(home.status).toBe(200);
-    expect(spy).not.toHaveBeenCalled(); // 予約分析ビューはGA4取得を試みない
+    const home1 = await worker.fetch(new Request('https://x/?view=bookings', { headers: { cookie } }), envGa4);
+    expect(home1.status).toBe(200);
+    expect(spy).not.toHaveBeenCalled(); // 予約分析ビューはGA4取得を試みない（ゲートを消すとここが落ちる）
+
+    const home2 = await worker.fetch(new Request('https://x/?view=web', { headers: { cookie } }), envGa4);
+    expect(home2.status).toBe(200); // トークン取得失敗時もGA4未接続表示にフォールバックして200を返す
+    expect(spy).toHaveBeenCalled(); // Webビューでは実際にGA4取得を試みる（ゲートが過剰だとここが落ちる）
 
     vi.restoreAllMocks();
     vi.unstubAllGlobals();

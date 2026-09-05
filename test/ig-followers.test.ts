@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { recordFollowerSnapshot, getFollowerSeries, ensureFollowerSnapshot } from '../src/ig/followers.js';
+import { recordFollowerSnapshot, getFollowerSeries, ensureFollowerSnapshot, FOLLOWERS_COOLDOWN_KEY } from '../src/ig/followers.js';
 import { jstToday } from '../src/util.js';
 import type { Env } from '../src/index.js';
 
@@ -61,5 +61,49 @@ describe('ensureFollowerSnapshot（ビュー非依存の1日1回記録）', () =
     expect(spy).not.toHaveBeenCalled();
     const series = await getFollowerSeries(e);
     expect(series).toEqual([{ date: jstToday(), count: 1000 }]); // 既存値を上書きしない
+  });
+});
+
+describe('ensureFollowerSnapshot の失敗クールダウン（IGトークン失効中に毎ビュー8秒再試行するのを防ぐ）', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('igGet失敗時にクールダウンキーが書かれる', async () => {
+    const dash = fakeKV();
+    const e = { ...env(dash), IG_ACCESS_TOKEN: 'tok', IG_USER_ID: '17841000000000000' } as Env;
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network error')));
+
+    await ensureFollowerSnapshot(e);
+
+    expect(await dash.get(FOLLOWERS_COOLDOWN_KEY)).not.toBeNull();
+  });
+
+  it('クールダウン中は igGet（fetch）を呼ばない', async () => {
+    const dash = fakeKV();
+    await dash.put(FOLLOWERS_COOLDOWN_KEY, '1');
+    const e = { ...env(dash), IG_ACCESS_TOKEN: 'tok', IG_USER_ID: '17841000000000000' } as Env;
+    const spy = vi.fn();
+    vi.stubGlobal('fetch', spy);
+
+    await ensureFollowerSnapshot(e);
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('クールダウンキー削除後は再試行できる（fakeKVはTTLで自動失効しないため手動削除で模擬）', async () => {
+    const dash = fakeKV();
+    await dash.put(FOLLOWERS_COOLDOWN_KEY, '1');
+    await dash.delete(FOLLOWERS_COOLDOWN_KEY);
+    const e = { ...env(dash), IG_ACCESS_TOKEN: 'tok', IG_USER_ID: '17841000000000000' } as Env;
+    const spy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ followers_count: 555 }) });
+    vi.stubGlobal('fetch', spy);
+
+    await ensureFollowerSnapshot(e);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    const series = await getFollowerSeries(e);
+    expect(series).toEqual([{ date: jstToday(), count: 555 }]);
   });
 });
