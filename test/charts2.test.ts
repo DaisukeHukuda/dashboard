@@ -13,6 +13,20 @@ describe('renderHeatmap', () => {
     const counts = Array.from({ length: 12 }, () => Array(7).fill(0));
     expect(renderHeatmap({ counts, max: 0 }).startsWith('<svg')).toBe(true);
   });
+  it('ヒートマップは月曜始まりで日曜が最終列', () => {
+    const counts = Array.from({ length: 12 }, () => [0, 0, 0, 0, 0, 0, 0]);
+    counts[0][0] = 5; // 1月の日曜
+    counts[0][1] = 3; // 1月の月曜
+    const svg = renderHeatmap({ counts, max: 5 });
+    // ヘッダ文字の出現順: 月が最初・日が最後
+    const order = ['月', '火', '水', '木', '金', '土', '日']
+      .map(d => svg.indexOf(`>${d}<`));
+    expect(order.every(i => i >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order); // 出現位置が昇順＝この表示順
+    // セルの対応: 日曜(counts[0][0]=5)のtitleが「1月 日: 5件」、月曜が「1月 月: 3件」
+    expect(svg).toContain('1月 日: 5件');
+    expect(svg).toContain('1月 月: 3件');
+  });
 });
 
 describe('renderCohortGrid', () => {
