@@ -76,6 +76,7 @@ function periodSelect(period: Period): string {
 <label style="margin:0">期間</label>
 <select name="period" onchange="this.form.submit()">
 ${opt('last12', '直近12ヶ月', cur === 'last12')}
+${opt('last24', '直近24ヶ月', cur === 'last24')}
 ${opt('all', '全期間', cur === 'all')}
 ${years.map(y => opt(String(y), `${y}年`, cur === String(y))).join('')}
 </select></form>`;
@@ -83,9 +84,10 @@ ${years.map(y => opt(String(y), `${y}年`, cur === String(y))).join('')}
 
 export function renderDashboard(d: DashboardData): string {
   const k = d.kpi;
+  const cmp = d.period.kind === 'last24' ? '前24ヶ月比' : '前年比';
   const kpis = [
-    kpiCard('予約件数', `${k.bookings}件`, `前年比 ${yoyLabel(k.yoyBookings)}`),
-    kpiCard('売上', yen(k.revenue), `前年比 ${yoyLabel(k.yoyRevenue)}`),
+    kpiCard('予約件数', `${k.bookings}件`, `${cmp} ${yoyLabel(k.yoyBookings)}`),
+    kpiCard('売上', yen(k.revenue), `${cmp} ${yoyLabel(k.yoyRevenue)}`),
     kpiCard('客単価', yen(k.avgPerBooking)),
     kpiCard('参加人数', `${k.pax}名`),
     kpiCard('リピート率', `${Math.round(k.repeatRate * 100)}%`, `新規${k.newCount} / リピート${k.repeatCount}`),
