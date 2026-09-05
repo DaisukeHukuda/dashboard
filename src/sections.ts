@@ -50,8 +50,9 @@ export function resolveView(param: string | null): ViewId {
   return VIEW_IDS.includes(param ?? '') ? (param as ViewId) : 'bookings';
 }
 
+const VIEW_MEDIA: Record<Exclude<ViewId, 'all'>, MediaId> = { bookings: 'booking', web: 'web', sns: 'sns' };
+
 export function sectionsForView(order: SectionId[], view: ViewId): SectionId[] {
   if (view === 'all') return order;
-  const media: MediaId = view === 'bookings' ? 'booking' : view === 'web' ? 'web' : 'sns';
-  return order.filter(id => MEDIA_OF[id] === media);
+  return order.filter(id => MEDIA_OF[id] === VIEW_MEDIA[view]);
 }

@@ -43,9 +43,9 @@ body.reorder #reorderBar{position:sticky;top:0;z-index:10;display:flex;gap:10px;
 .p-note{font-size:11px;color:var(--muted);font-weight:400;margin-left:8px;white-space:nowrap}
 .p-note::before{content:" "}
 :root{--m-booking:#1e3a5f;--m-web:#16a34a;--m-sns:#db2777}
-.shell{display:flex;align-items:flex-start}
+.shell{display:flex;align-items:flex-start;max-width:1300px;margin:0 auto}
 .side{width:180px;flex:none;position:sticky;top:0;padding:12px 8px}
-.side a{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;text-decoration:none;color:var(--ink);font-size:14px;min-height:44px}
+.side a{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;text-decoration:none;color:var(--ink);font-size:14px;min-height:44px;border:1px solid transparent}
 .side a.active{background:#fff;font-weight:700;border:1px solid var(--line)}
 .dot{width:10px;height:10px;border-radius:50%;flex:none}
 main{flex:1;min-width:0}
@@ -97,12 +97,14 @@ export interface DashboardData {
   view: ViewId;
 }
 
-function periodSelect(period: Period, view: ViewId): string {
+function periodSelect(period: Period, view: ViewId, selectedCourse: string, granularity: 'month' | 'week'): string {
   const years = [2024, 2023, 2022, 2021, 2020];
   const opt = (v: string, label: string, sel: boolean) => `<option value="${v}"${sel ? ' selected' : ''}>${esc(label)}</option>`;
   const cur = period.kind === 'year' ? period.start.slice(0, 4) : period.kind;
   return `<form method="get" style="display:flex;gap:8px;align-items:center">
 <input type="hidden" name="view" value="${view}">
+${selectedCourse ? `<input type="hidden" name="course" value="${esc(selectedCourse)}">` : ''}
+${granularity === 'week' ? '<input type="hidden" name="g" value="week">' : ''}
 <label style="margin:0">期間</label>
 <select name="period" onchange="this.form.submit()">
 ${opt('last12', '直近12ヶ月', cur === 'last12')}
@@ -151,6 +153,7 @@ ${renderTrendChart(d.trend, d.trendPrior)}</div>`,
 <form method="get" style="margin-bottom:8px">
 <input type="hidden" name="period" value="${d.period.kind === 'year' ? d.period.start.slice(0, 4) : d.period.kind}">
 <input type="hidden" name="view" value="${d.view}">
+${d.granularity === 'week' ? '<input type="hidden" name="g" value="week">' : ''}
 <select name="course" onchange="this.form.submit()">${courseOpts}</select>
 </form>${renderHeatmap(d.heatmap)}</div>`,
     cohort: `<div class="card"><h2>リピーター・コホート再訪率（初回月別・全期間）${pnote('全期間')}</h2>${renderCohortGrid(d.cohorts)}</div>`,
@@ -161,7 +164,9 @@ ${renderCourseBars(d.sourceRows)}</div>`,
     ga4: renderTrafficSection(d.traffic, range),
     ig: renderSocialSection(d.social, range),
   };
-  const secTools = `<div class="sec-tools"><button type="button" class="mv" data-dir="-1">↑ 上へ</button><button type="button" class="mv" data-dir="1">↓ 下へ</button></div>`;
+  const secTools = d.view === 'all'
+    ? `<div class="sec-tools"><button type="button" class="mv" data-dir="-1">↑ 上へ</button><button type="button" class="mv" data-dir="1">↓ 下へ</button></div>`
+    : '';
   const visible = sectionsForView(d.sectionOrder, d.view);
   const orderedSections = visible
     .map(id => `<section class="sec" data-sec="${id}" data-media="${MEDIA_OF[id]}">${secTools}${sections[id]}</section>`)
@@ -175,8 +180,10 @@ ${renderCourseBars(d.sourceRows)}</div>`,
     if (d.granularity !== 'month') p.set('g', d.granularity);
     return `/?${p.toString()}`;
   };
-  const navItem = (v: ViewId, label: string, dotColor: string) =>
-    `<a href="${viewQuery(v)}" class="${d.view === v ? 'active' : ''}"><span class="dot" style="background:${dotColor}"></span>${label}</a>`;
+  const navItem = (v: ViewId, label: string, dotColor: string) => {
+    const active = d.view === v;
+    return `<a href="${viewQuery(v)}" class="${active ? 'active' : ''}"${active ? ' aria-current="page"' : ''}><span class="dot" style="background:${dotColor}"></span>${label}</a>`;
+  };
   const sideNav = `<nav class="side">
 ${navItem('bookings', '予約分析', 'var(--m-booking)')}
 ${navItem('web', 'Webサイト', 'var(--m-web)')}
@@ -195,7 +202,7 @@ ${navItem('all', 'すべて', '#6b7280')}
 <div class="shell">
 ${sideNav}
 <main>
-<div class="card" style="display:flex;justify-content:space-between;align-items:center">${periodSelect(d.period, d.view)}<span style="font-size:12px;color:var(--muted)">${esc(d.period.label)}</span></div>
+<div class="card" style="display:flex;justify-content:space-between;align-items:center">${periodSelect(d.period, d.view, d.selectedCourse, d.granularity)}<span style="font-size:12px;color:var(--muted)">${esc(d.period.label)}</span></div>
 ${reorderBar}
 
 ${orderedSections}

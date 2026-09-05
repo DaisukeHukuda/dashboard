@@ -3,6 +3,9 @@
 Sup! Sup! マーケティング分析ダッシュボード（Phase 1）。
 既存 web の KV `DATA` を read-only 参照し、`history:latest`（sync が公開する完了予約履歴）を集計して表示する。
 
+## 表示ビュー
+左サイドバー（またはスマホではタブ）でメディア別に表示を切り替えられる。URLクエリ `?view=bookings|web|sns|all` で指定（既定は `bookings`＝予約分析）。`web`=GA4のWebサイト分析、`sns`=Instagram分析、`all`=全ブロック表示。
+
 ## セットアップ
 1. `npm install`
 2. `npx wrangler kv namespace create DASH` → 出力の id を `wrangler.toml` の DASH に貼る
