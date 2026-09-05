@@ -50,4 +50,15 @@ describe('priorYearSeries', () => {
     expect(prior.every(x => x === null)).toBe(true);
     expect(prior).toHaveLength(points.length);
   });
+  it('last24 では前年重ねを描かない（全null）', () => {
+    const recs = [
+      { date: '2026-08-01', course: 'A', pax: 1, amount: 1000, status: '完了', phoneHash: 'x' },
+      { date: '2025-08-01', course: 'A', pax: 1, amount: 1000, status: '完了', phoneHash: 'x' },
+    ] as HistoryRecord[];
+    const p = resolvePeriod('last24', '2026-09-05');
+    const points = computeTrend(recs, p, 'month');
+    const prior = priorYearSeries(recs, p, 'month', points);
+    expect(prior.length).toBe(points.length);
+    expect(prior.every(v => v === null)).toBe(true);
+  });
 });

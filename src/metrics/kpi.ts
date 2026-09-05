@@ -1,5 +1,5 @@
 import type { HistoryRecord } from '../types.js';
-import { type Period, filterPeriod, priorYear } from '../period.js';
+import { type Period, filterPeriod, priorPeriod } from '../period.js';
 import { firstVisitMap, isRepeat } from '../repeat.js';
 
 export interface Kpi {
@@ -15,7 +15,7 @@ function totals(recs: HistoryRecord[]): { bookings: number; revenue: number } {
 export function computeKpi(all: HistoryRecord[], period: Period): Kpi {
   const first = firstVisitMap(all);
   const cur = filterPeriod(all, period);
-  const prev = filterPeriod(all, priorYear(period));
+  const prev = filterPeriod(all, priorPeriod(period));
 
   const revenue = cur.reduce((s, r) => s + r.amount, 0);
   const pax = cur.reduce((s, r) => s + r.pax, 0);

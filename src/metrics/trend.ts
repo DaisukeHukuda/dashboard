@@ -32,6 +32,7 @@ export function priorYearSeries(
   all: HistoryRecord[], period: Period, gran: 'month' | 'week', points: TrendPoint[],
 ): (number | null)[] {
   if (gran !== 'month') return points.map(() => null);
+  if (period.kind === 'last24') return points.map(() => null); // 24ヶ月窓は前年を自身に含むため重ねない
   const prior = computeTrend(all, priorYear(period), 'month');
   const map = new Map(prior.map(p => [p.bucket, p.bookings]));
   return points.map(p => {

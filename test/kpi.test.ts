@@ -37,4 +37,17 @@ describe('computeKpi', () => {
     const k = computeKpi([r('2023-06-01', 12000, 2, 'p1')], p);
     expect(k.yoyRevenue).toBeNull();
   });
+  it('last24 は前24ヶ月と比較する（現行窓と重複しない）', () => {
+    const h24 = (date: string, amount: number): HistoryRecord =>
+      ({ date, course: 'A', pax: 1, amount, status: '完了', phoneHash: 'x' } as HistoryRecord);
+    const recs = [
+      h24('2026-08-01', 10000), // 現行24ヶ月内
+      h24('2025-09-01', 20000), // 現行24ヶ月内（-12ヶ月シフトだと誤って比較側に入る位置）
+      h24('2023-01-01', 5000),  // 前24ヶ月内
+    ];
+    const p = resolvePeriod('last24', '2026-09-05');
+    const k = computeKpi(recs, p);
+    expect(k.revenue).toBe(30000);
+    expect(k.yoyRevenue).toBe(6); // 30000 / 5000
+  });
 });
