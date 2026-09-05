@@ -32,6 +32,6 @@ export function renderSocialSection(d: SocialData, periodNote: string): string {
 <div class="card"><h2>フォロワー推移（蓄積開始以降）</h2>${followerTp.length ? renderTrendChart(followerTp) : '<p style="font-size:13px;color:var(--muted)">まだ蓄積がありません（本日以降）。</p>'}</div>
 <div class="card"><h2>リーチ推移<span class="p-note">対象: 期間末尾の最大30日</span></h2>${seriesChart(d.reach)}</div>
 <div class="card"><h2>投稿 × 予約（棒=投稿数 / 線=予約件数）<span class="p-note">対象: ${periodNote}（投稿は最新25件の範囲）</span></h2>${renderTrendChart(overlayTp)}</div>
-<div class="card"><h2>投稿別エンゲージメント Top<span class="p-note">対象: 最新25投稿</span></h2>
+<div class="card"><h2>投稿別エンゲージメント Top<span class="p-note">対象: 最新12投稿（上位10件）</span></h2>
 <table style="font-size:13px;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:2px 10px">投稿</th><th style="padding:2px 10px">リーチ</th><th style="padding:2px 10px">いいね</th><th style="padding:2px 10px">コメント</th><th style="padding:2px 10px">保存</th></tr></thead><tbody>${postRows}</tbody></table></div>`;
 }

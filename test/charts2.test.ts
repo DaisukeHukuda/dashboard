@@ -26,6 +26,8 @@ describe('renderHeatmap', () => {
     // セルの対応: 日曜(counts[0][0]=5)のtitleが「1月 日: 5件」、月曜が「1月 月: 3件」
     expect(svg).toContain('1月 日: 5件');
     expect(svg).toContain('1月 月: 3件');
+    // 日曜セルは最終列（cell=34, labelW=36 → 7列目 x=36+6*34=240、rectのxは+1で241）に描かれる
+    expect(svg).toMatch(/<rect x="241"[^>]*><title>1月 日: 5件<\/title>/);
   });
 });
 

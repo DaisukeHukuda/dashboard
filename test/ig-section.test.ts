@@ -27,7 +27,7 @@ describe('renderSocialSection', () => {
     const connectedFixture = { ...base, connected: true };
     const html = renderSocialSection(connectedFixture, '2025-09-06〜2026-09-05');
     expect(html).toContain('対象: 期間末尾の最大30日');
-    expect(html).toContain('対象: 最新25投稿');
+    expect(html).toContain('対象: 最新12投稿（上位10件）');
     expect(html).toContain('対象: 2025-09-06〜2026-09-05（投稿は最新25件の範囲）');
   });
 });

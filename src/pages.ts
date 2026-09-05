@@ -40,7 +40,8 @@ body.reorder #reorderBar{position:sticky;top:0;z-index:10;display:flex;gap:10px;
 #reorderBar button{min-height:44px;min-width:88px;font-size:14px;border-radius:8px;border:1px solid var(--line)}
 #reorderSave{background:var(--accent);color:#fff;border:none}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;z-index:20}
-.p-note{font-size:11px;color:var(--muted);font-weight:400;margin-left:8px}
+.p-note{font-size:11px;color:var(--muted);font-weight:400;margin-left:8px;white-space:nowrap}
+.p-note::before{content:" "}
 </style></head><body>${body}</body></html>`;
 }
 
@@ -191,7 +192,7 @@ ${orderedSections}
         var toast=document.createElement('div');toast.className='toast';toast.textContent='並び順を保存しました';
         document.body.appendChild(toast);setTimeout(function(){toast.remove();},2500);
       })
-      .catch(function(){alert('保存に失敗しました。通信環境を確認して再度お試しください');});
+      .catch(function(){alert('保存できませんでした。画面が古い可能性があります。再読み込みしてからもう一度お試しください');});
   });
 })();
 </script>

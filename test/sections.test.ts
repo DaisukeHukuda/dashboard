@@ -41,6 +41,10 @@ describe('sections', () => {
       expect(result.indexOf('trend')).toBe(result.indexOf('insights') + 1);
       expect(result.length).toBe(DEFAULT_ORDER.length);
     });
+    it('削除済みセクションID（weather）を含む保存順は黙って吸収される', () => {
+      const legacy = ['kpi','insights','trend','heatmap','weather','cohort','course','source','ga4','ig'];
+      expect(applyOrder(legacy)).toEqual(DEFAULT_ORDER);
+    });
   });
 
   describe('isValidOrder', () => {
