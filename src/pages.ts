@@ -37,7 +37,7 @@ button{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:9p
 body.reorder .sec-tools{display:flex}
 .sec-tools button{min-height:44px;min-width:80px;font-size:14px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
 .sec-tools button:disabled{opacity:.3}
-#reorderBar{position:sticky;top:0;z-index:10;display:flex;gap:10px;align-items:center}
+body.reorder #reorderBar{position:sticky;top:0;z-index:10;display:flex;gap:10px;align-items:center}
 #reorderBar button{min-height:44px;min-width:88px;font-size:14px;border-radius:8px;border:1px solid var(--line)}
 #reorderSave{background:var(--accent);color:#fff;border:none}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;z-index:20}

@@ -103,5 +103,7 @@ describe('dashboard rendering', () => {
     expect(html).toContain('/api/section-order');
     expect(html).toContain('data-dir="-1"'); // ↑ボタン
     expect(html).toContain('data-dir="1"');  // ↓ボタン
+    expect(html).toMatch(/id="reorderBar"[^>]*\shidden[\s>]/); // 初期状態はhidden属性つき
+    expect(html).toContain('body.reorder #reorderBar');          // 表示はモード中のみ（CSSがhiddenを打ち消さない）
   });
 });
