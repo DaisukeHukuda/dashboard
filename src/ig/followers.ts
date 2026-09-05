@@ -1,4 +1,6 @@
 import type { Env } from '../index.js';
+import { igGet } from './client.js';
+import { jstToday } from '../util.js';
 
 const PREFIX = 'ig:followers:';
 
@@ -7,6 +9,16 @@ export async function recordFollowerSnapshot(env: Env, count: number, today: str
   const existing = await env.DASH.get(key);
   if (existing !== null) return; // その日の最初の値を保持
   await env.DASH.put(key, String(count));
+}
+
+// ビューに関係なく1日1回だけフォロワー数を記録する（閲覧駆動のため、非表示ビューでも取りこぼさない）
+export async function ensureFollowerSnapshot(env: Env): Promise<void> {
+  const today = jstToday();
+  const key = `${PREFIX}${today}`;
+  const existing = await env.DASH.get(key); // 今日のキーが既にあれば何もしない（KV read 1回）
+  if (existing !== null) return;
+  const acct = await igGet(env, env.IG_USER_ID ?? '', { fields: 'followers_count' }) as { followers_count?: number };
+  if (typeof acct.followers_count === 'number') await recordFollowerSnapshot(env, acct.followers_count, today);
 }
 
 // KV の list は結果整合性（eventually consistent）のため、同一リクエスト内で書き込んだ

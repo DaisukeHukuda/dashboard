@@ -19,7 +19,7 @@ import { buildGa4Insights } from './ga4/insights.js';
 import type { TrafficData } from './ga4/section.js';
 import { igGet } from './ig/client.js';
 import { parseInsightSeries, parseMediaList, parseMediaInsights, buildPostRows } from './ig/reports.js';
-import { recordFollowerSnapshot, getFollowerSeries } from './ig/followers.js';
+import { recordFollowerSnapshot, getFollowerSeries, ensureFollowerSnapshot } from './ig/followers.js';
 import { computeSocialOverlay } from './metrics/social.js';
 import { buildIgInsights } from './ig/insights.js';
 import type { SocialData } from './ig/section.js';
@@ -97,6 +97,11 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
         connected: true,
       };
     } catch { traffic = emptyTraffic; }
+  }
+
+  // 表示ビューに関係なく、その日まだ記録が無ければフォロワー数だけ1回取得して記録する（取りこぼし防止）
+  if (env.IG_ACCESS_TOKEN && env.IG_USER_ID) {
+    try { await ensureFollowerSnapshot(env); } catch { /* 記録失敗は表示に影響させない */ }
   }
 
   // IG 未設定/失敗時は Phase 1/2 を退行させず未接続表示にフォールバック

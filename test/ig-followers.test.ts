@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { recordFollowerSnapshot, getFollowerSeries } from '../src/ig/followers.js';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { recordFollowerSnapshot, getFollowerSeries, ensureFollowerSnapshot } from '../src/ig/followers.js';
+import { jstToday } from '../src/util.js';
 import type { Env } from '../src/index.js';
 
 // list(prefix) をちゃんと実装した fakeKV
@@ -26,5 +27,39 @@ describe('follower snapshots', () => {
   });
   it('returns [] when no snapshots', async () => {
     expect(await getFollowerSeries(env())).toEqual([]);
+  });
+});
+
+describe('ensureFollowerSnapshot（ビュー非依存の1日1回記録）', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('未記録の日は followers_count だけを1回取得して記録する', async () => {
+    const dash = fakeKV();
+    const e = { ...env(dash), IG_ACCESS_TOKEN: 'tok', IG_USER_ID: '17841000000000000' } as Env;
+    const spy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ followers_count: 4242 }) });
+    vi.stubGlobal('fetch', spy);
+
+    await ensureFollowerSnapshot(e);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    const series = await getFollowerSeries(e);
+    expect(series).toEqual([{ date: jstToday(), count: 4242 }]);
+  });
+
+  it('記録済みの日は追加fetchをしない（同日デデュープ）', async () => {
+    const dash = fakeKV();
+    const e = { ...env(dash), IG_ACCESS_TOKEN: 'tok', IG_USER_ID: '17841000000000000' } as Env;
+    await recordFollowerSnapshot(e, 1000, jstToday());
+    const spy = vi.fn();
+    vi.stubGlobal('fetch', spy);
+
+    await ensureFollowerSnapshot(e);
+
+    expect(spy).not.toHaveBeenCalled();
+    const series = await getFollowerSeries(e);
+    expect(series).toEqual([{ date: jstToday(), count: 1000 }]); // 既存値を上書きしない
   });
 });
