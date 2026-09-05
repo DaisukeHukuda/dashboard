@@ -111,4 +111,37 @@ describe('dashboard rendering', () => {
     expect(html).toContain('対象: 2025-09-06〜2026-09-05'); // KPI等の期間連動ブロック
     expect(html).toContain('対象: 全期間'); // コホート
   });
+
+  it('bookingsビューは7ブロックのみ・並び替えUIなし', () => {
+    const html = renderDashboard({ ...base, view: 'bookings' });
+    const ids = [...html.matchAll(/data-sec="([a-z0-9]+)"/g)].map(m => m[1]);
+    expect(ids).toHaveLength(7);
+    expect(html).not.toContain('id="reorderBtn"');
+    expect(html).not.toContain('id="reorderBar"');
+  });
+  it('allビューは9ブロック＋並び替えUIあり', () => {
+    const html = renderDashboard({ ...base, view: 'all' });
+    expect([...html.matchAll(/data-sec="/g)]).toHaveLength(9);
+    expect(html).toContain('id="reorderBtn"');
+  });
+  it('サイドバー: 4リンク・現在ビューがactive・periodを引き継ぐ', () => {
+    const html = renderDashboard({ ...base, view: 'web', period: resolvePeriod('last24', '2026-09-05') });
+    expect(html).toContain('class="side"');
+    expect(html).toMatch(/<a[^>]*href="\/\?view=web[^"]*"[^>]*class="[^"]*active/);
+    expect(html).toContain('view=bookings');
+    expect(html).toContain('view=sns');
+    expect(html).toContain('view=all');
+    expect((html.match(/period=last24/g) ?? []).length).toBeGreaterThanOrEqual(4); // 4リンクすべてが期間を引き継ぐ
+  });
+  it('data-media が付与される', () => {
+    const html = renderDashboard({ ...base, view: 'all' });
+    expect(html).toContain('data-sec="kpi" data-media="booking"');
+    expect(html).toContain('data-sec="ga4" data-media="web"');
+    expect(html).toContain('data-sec="ig" data-media="sns"');
+  });
+  it('期間フォームとコースフォームが view を引き継ぐ', () => {
+    // heatmap（コースフォーム）は booking 系ビューのみ表示されるため、両フォームが並ぶ bookings で確認する
+    const html = renderDashboard({ ...base, view: 'bookings' });
+    expect((html.match(/name="view" value="bookings"/g) ?? []).length).toBeGreaterThanOrEqual(2);
+  });
 });

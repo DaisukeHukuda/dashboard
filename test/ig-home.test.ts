@@ -14,7 +14,7 @@ describe('home IG wiring', () => {
     const env: Env = { DATA: fakeKV({ 'history:latest': JSON.stringify(history) }), DASH: fakeKV(), ADMIN_USER: 'admin', ADMIN_PASSWORD: 'pw', SESSION_SECRET: 'secret' };
     const exp = Math.floor(Date.now() / 1000) + 3600;
     const cookie = `sess=${await createSession({ username: 'admin', exp }, 'secret')}`;
-    const res = await worker.fetch(new Request('https://x/?period=all', { headers: { cookie } }), env);
+    const res = await worker.fetch(new Request('https://x/?period=all&view=all', { headers: { cookie } }), env);
     const html = await res.text();
     expect(res.status).toBe(200);
     expect(html).toContain('KPI');            // Phase 1 健在

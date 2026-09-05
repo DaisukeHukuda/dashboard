@@ -17,7 +17,7 @@ async function cookie() {
 describe('home GA4 wiring', () => {
   it('shows GA4 not-connected notice when env is missing (Phase 1 still renders)', async () => {
     const env: Env = { DATA: fakeKV({ 'history:latest': JSON.stringify(history) }), DASH: fakeKV(), ADMIN_USER: 'admin', ADMIN_PASSWORD: 'pw', SESSION_SECRET: 'secret' };
-    const res = await worker.fetch(new Request('https://x/?period=all', { headers: { cookie: await cookie() } }), env);
+    const res = await worker.fetch(new Request('https://x/?period=all&view=all', { headers: { cookie: await cookie() } }), env);
     const html = await res.text();
     expect(res.status).toBe(200);
     expect(html).toContain('KPI');       // Phase 1 健在

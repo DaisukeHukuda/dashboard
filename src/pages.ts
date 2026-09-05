@@ -10,7 +10,7 @@ import { renderHeatmap } from './charts/heatmap.js';
 import { renderCohortGrid } from './charts/cohortgrid.js';
 import { renderTrafficSection, type TrafficData } from './ga4/section.js';
 import { renderSocialSection, type SocialData } from './ig/section.js';
-import { type SectionId, type ViewId } from './sections.js';
+import { type SectionId, type ViewId, MEDIA_OF, sectionsForView } from './sections.js';
 
 export function esc(s: string): string {
   return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
@@ -42,6 +42,22 @@ body.reorder #reorderBar{position:sticky;top:0;z-index:10;display:flex;gap:10px;
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;z-index:20}
 .p-note{font-size:11px;color:var(--muted);font-weight:400;margin-left:8px;white-space:nowrap}
 .p-note::before{content:" "}
+:root{--m-booking:#1e3a5f;--m-web:#16a34a;--m-sns:#db2777}
+.shell{display:flex;align-items:flex-start}
+.side{width:180px;flex:none;position:sticky;top:0;padding:12px 8px}
+.side a{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;text-decoration:none;color:var(--ink);font-size:14px;min-height:44px}
+.side a.active{background:#fff;font-weight:700;border:1px solid var(--line)}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+main{flex:1;min-width:0}
+section[data-media="booking"] .card{border-left:4px solid var(--m-booking)}
+section[data-media="web"] .card{border-left:4px solid var(--m-web)}
+section[data-media="sns"] .card{border-left:4px solid var(--m-sns)}
+@media(max-width:899px){
+.shell{display:block}
+.side{display:flex;width:auto;position:sticky;top:0;z-index:15;background:var(--bg);overflow-x:auto;padding:8px;gap:4px;border-bottom:1px solid var(--line)}
+.side a{white-space:nowrap;min-height:40px;padding:8px 10px}
+body.reorder #reorderBar{top:56px}
+}
 </style></head><body>${body}</body></html>`;
 }
 
@@ -81,11 +97,12 @@ export interface DashboardData {
   view: ViewId;
 }
 
-function periodSelect(period: Period): string {
+function periodSelect(period: Period, view: ViewId): string {
   const years = [2024, 2023, 2022, 2021, 2020];
   const opt = (v: string, label: string, sel: boolean) => `<option value="${v}"${sel ? ' selected' : ''}>${esc(label)}</option>`;
   const cur = period.kind === 'year' ? period.start.slice(0, 4) : period.kind;
   return `<form method="get" style="display:flex;gap:8px;align-items:center">
+<input type="hidden" name="view" value="${view}">
 <label style="margin:0">期間</label>
 <select name="period" onchange="this.form.submit()">
 ${opt('last12', '直近12ヶ月', cur === 'last12')}
@@ -116,6 +133,7 @@ export function renderDashboard(d: DashboardData): string {
   const gToggle = (g: 'month' | 'week', label: string) => {
     const params = new URLSearchParams();
     params.set('period', d.period.kind === 'year' ? d.period.start.slice(0, 4) : d.period.kind);
+    params.set('view', d.view);
     if (g !== 'month') params.set('g', g);
     if (d.selectedCourse) params.set('course', d.selectedCourse);
     const active = d.granularity === g;
@@ -132,6 +150,7 @@ ${renderTrendChart(d.trend, d.trendPrior)}</div>`,
     heatmap: `<div class="card"><h2>季節 × 曜日ヒートマップ${pnote(range)}</h2>
 <form method="get" style="margin-bottom:8px">
 <input type="hidden" name="period" value="${d.period.kind === 'year' ? d.period.start.slice(0, 4) : d.period.kind}">
+<input type="hidden" name="view" value="${d.view}">
 <select name="course" onchange="this.form.submit()">${courseOpts}</select>
 </form>${renderHeatmap(d.heatmap)}</div>`,
     cohort: `<div class="card"><h2>リピーター・コホート再訪率（初回月別・全期間）${pnote('全期間')}</h2>${renderCohortGrid(d.cohorts)}</div>`,
@@ -143,14 +162,41 @@ ${renderCourseBars(d.sourceRows)}</div>`,
     ig: renderSocialSection(d.social, range),
   };
   const secTools = `<div class="sec-tools"><button type="button" class="mv" data-dir="-1">↑ 上へ</button><button type="button" class="mv" data-dir="1">↓ 下へ</button></div>`;
-  const orderedSections = d.sectionOrder
-    .map(id => `<section class="sec" data-sec="${id}">${secTools}${sections[id]}</section>`)
+  const visible = sectionsForView(d.sectionOrder, d.view);
+  const orderedSections = visible
+    .map(id => `<section class="sec" data-sec="${id}" data-media="${MEDIA_OF[id]}">${secTools}${sections[id]}</section>`)
     .join('\n');
 
-  const body = `<header>Sup! Sup! マーケ分析ダッシュボード <span style="float:right;display:flex;gap:12px;align-items:center"><button type="button" id="reorderBtn" style="background:none;border:1px solid #cbd5e1;color:#cbd5e1;font-size:12px;border-radius:6px;padding:2px 8px;cursor:pointer">並び替え</button><a href="/logout" style="color:#cbd5e1;font-size:12px">ログアウト</a></span></header>
+  const viewQuery = (v: ViewId) => {
+    const p = new URLSearchParams();
+    p.set('view', v);
+    p.set('period', d.period.kind === 'year' ? d.period.start.slice(0, 4) : d.period.kind);
+    if (d.selectedCourse) p.set('course', d.selectedCourse);
+    if (d.granularity !== 'month') p.set('g', d.granularity);
+    return `/?${p.toString()}`;
+  };
+  const navItem = (v: ViewId, label: string, dotColor: string) =>
+    `<a href="${viewQuery(v)}" class="${d.view === v ? 'active' : ''}"><span class="dot" style="background:${dotColor}"></span>${label}</a>`;
+  const sideNav = `<nav class="side">
+${navItem('bookings', '予約分析', 'var(--m-booking)')}
+${navItem('web', 'Webサイト', 'var(--m-web)')}
+${navItem('sns', 'Instagram', 'var(--m-sns)')}
+${navItem('all', 'すべて', '#6b7280')}
+</nav>`;
+
+  const reorderBtn = d.view === 'all'
+    ? `<button type="button" id="reorderBtn" style="background:none;border:1px solid #cbd5e1;color:#cbd5e1;font-size:12px;border-radius:6px;padding:2px 8px;cursor:pointer">並び替え</button>`
+    : '';
+  const reorderBar = d.view === 'all'
+    ? `<div id="reorderBar" class="card" hidden>並び順を編集中：各ブロックの「↑ 上へ」「↓ 下へ」で移動 <button type="button" id="reorderSave">完了</button> <button type="button" id="reorderCancel">キャンセル</button></div>`
+    : '';
+
+  const body = `<header>Sup! Sup! マーケ分析ダッシュボード <span style="float:right;display:flex;gap:12px;align-items:center">${reorderBtn}<a href="/logout" style="color:#cbd5e1;font-size:12px">ログアウト</a></span></header>
+<div class="shell">
+${sideNav}
 <main>
-<div class="card" style="display:flex;justify-content:space-between;align-items:center">${periodSelect(d.period)}<span style="font-size:12px;color:var(--muted)">${esc(d.period.label)}</span></div>
-<div id="reorderBar" class="card" hidden>並び順を編集中：各ブロックの「↑ 上へ」「↓ 下へ」で移動 <button type="button" id="reorderSave">完了</button> <button type="button" id="reorderCancel">キャンセル</button></div>
+<div class="card" style="display:flex;justify-content:space-between;align-items:center">${periodSelect(d.period, d.view)}<span style="font-size:12px;color:var(--muted)">${esc(d.period.label)}</span></div>
+${reorderBar}
 
 ${orderedSections}
 <script>
@@ -197,6 +243,7 @@ ${orderedSections}
   });
 })();
 </script>
-</main>`;
+</main>
+</div>`;
   return layout('ダッシュボード｜Sup! Sup! マーケ分析', body);
 }
