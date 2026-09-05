@@ -21,12 +21,18 @@ export function computeSocialOverlay(
   for (const r of filterPeriod(all, period)) {
     const b = ymOf(r.date); const cur = get(b); cur.bookings += 1; map.set(b, cur);
   }
+  // IG APIは投稿を最新25件しか返さないため、期間が長いと古い月の投稿が
+  // 未取得のまま「投稿0」に見えてしまう。取得できた最古の投稿の月を控えておき、
+  // それより前のバケツは（誤読を避けるため）オーバーレイから落とす。
+  let oldestPostBucket: string | null = null;
   for (const m of media) {
     const date = jstDateOfIso(m.timestamp);
     if (!inPeriod(date, period)) continue;
     const b = ymOf(date); const cur = get(b); cur.posts += 1; map.set(b, cur);
+    if (oldestPostBucket === null || b < oldestPostBucket) oldestPostBucket = b;
   }
   return [...map.entries()]
+    .filter(([bucket]) => oldestPostBucket === null || bucket >= oldestPostBucket)
     .sort((a, b) => (a[0] < b[0] ? -1 : 1))
     .map(([bucket, v]) => ({ bucket, posts: v.posts, bookings: v.bookings }));
 }
