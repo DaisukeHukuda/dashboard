@@ -33,3 +33,25 @@ export function isValidOrder(order: unknown): order is SectionId[] {
     && new Set(order).size === order.length
     && order.every(id => typeof id === 'string' && KNOWN.has(id));
 }
+
+// メディア分類（サイドバーの色・カード左ボーダー・ビュー絞り込みに使用）
+export type MediaId = 'booking' | 'web' | 'sns';
+export const MEDIA_OF: Record<SectionId, MediaId> = {
+  kpi: 'booking', insights: 'booking', trend: 'booking', heatmap: 'booking',
+  cohort: 'booking', course: 'booking', source: 'booking',
+  ga4: 'web', ig: 'sns',
+};
+
+// 表示ビュー。URLクエリ ?view= で切替（既定=予約分析）
+export type ViewId = 'bookings' | 'web' | 'sns' | 'all';
+const VIEW_IDS: readonly string[] = ['bookings', 'web', 'sns', 'all'];
+
+export function resolveView(param: string | null): ViewId {
+  return VIEW_IDS.includes(param ?? '') ? (param as ViewId) : 'bookings';
+}
+
+export function sectionsForView(order: SectionId[], view: ViewId): SectionId[] {
+  if (view === 'all') return order;
+  const media: MediaId = view === 'bookings' ? 'booking' : view === 'web' ? 'web' : 'sns';
+  return order.filter(id => MEDIA_OF[id] === media);
+}

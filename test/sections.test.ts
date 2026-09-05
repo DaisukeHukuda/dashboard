@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SECTION_IDS, DEFAULT_ORDER, applyOrder, isValidOrder } from '../src/sections.js';
+import { SECTION_IDS, DEFAULT_ORDER, applyOrder, isValidOrder, MEDIA_OF, resolveView, sectionsForView } from '../src/sections.js';
 
 describe('sections', () => {
   it('SECTION_IDS は9ブロック', () => {
@@ -54,6 +54,24 @@ describe('sections', () => {
       expect(isValidOrder([...DEFAULT_ORDER, 'kpi'])).toBe(false);       // 重複・過多
       expect(isValidOrder([...DEFAULT_ORDER.slice(0, 8), 'zzz'])).toBe(false); // 未知ID
       expect(isValidOrder('kpi')).toBe(false);                            // 非配列
+    });
+  });
+
+  describe('views', () => {
+    it('resolveView は不正値・nullで bookings', () => {
+      expect(resolveView(null)).toBe('bookings');
+      expect(resolveView('zzz')).toBe('bookings');
+      expect(resolveView('web')).toBe('web');
+      expect(resolveView('sns')).toBe('sns');
+      expect(resolveView('all')).toBe('all');
+    });
+    it('sectionsForView は保存順を維持して絞り込む', () => {
+      const custom = [...DEFAULT_ORDER].reverse();
+      expect(sectionsForView(custom, 'all')).toEqual(custom);
+      expect(sectionsForView(custom, 'web')).toEqual(['ga4']);
+      expect(sectionsForView(custom, 'sns')).toEqual(['ig']);
+      expect(sectionsForView(custom, 'bookings')).toEqual(custom.filter(id => MEDIA_OF[id] === 'booking'));
+      expect(sectionsForView(custom, 'bookings')).toHaveLength(7);
     });
   });
 });
