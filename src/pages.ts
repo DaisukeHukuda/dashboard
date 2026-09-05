@@ -4,7 +4,6 @@ import type { TrendPoint } from './metrics/trend.js';
 import type { Heatmap } from './metrics/heatmap.js';
 import type { CohortRow } from './metrics/cohort.js';
 import type { CourseRow } from './metrics/course.js';
-import type { WeatherJoin } from './metrics/weatherjoin.js';
 import { renderTrendChart } from './charts/line.js';
 import { renderCourseBars } from './charts/bar.js';
 import { renderHeatmap } from './charts/heatmap.js';
@@ -71,7 +70,7 @@ ${sub ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(sub
 export interface DashboardData {
   period: Period; kpi: Kpi; trend: TrendPoint[]; heatmap: Heatmap;
   courses: string[]; selectedCourse: string; cohorts: CohortRow[];
-  courseRows: CourseRow[]; sourceRows: CourseRow[]; weather: WeatherJoin; insights: string[];
+  courseRows: CourseRow[]; sourceRows: CourseRow[]; insights: string[];
   granularity: 'month' | 'week'; trendPrior: (number | null)[];
   traffic: TrafficData;
   social: SocialData;
@@ -130,7 +129,6 @@ ${renderTrendChart(d.trend, d.trendPrior)}</div>`,
 <input type="hidden" name="period" value="${d.period.kind === 'year' ? d.period.start.slice(0, 4) : d.period.kind}">
 <select name="course" onchange="this.form.submit()">${courseOpts}</select>
 </form>${renderHeatmap(d.heatmap)}</div>`,
-    weather: `<div class="card"><h2>天候相関</h2>${renderWeatherBlock(d.weather)}</div>`,
     cohort: `<div class="card"><h2>リピーター・コホート再訪率（初回月別・全期間）</h2>${renderCohortGrid(d.cohorts)}</div>`,
     course: `<div class="card"><h2>コース別内訳</h2>${renderCourseBars(d.courseRows)}</div>`,
     source: `<div class="card"><h2>流入経路（お客様の自己申告）</h2>
@@ -196,15 +194,4 @@ ${orderedSections}
 </script>
 </main>`;
   return layout('ダッシュボード｜Sup! Sup! マーケ分析', body);
-}
-
-function renderWeatherBlock(w: WeatherJoin): string {
-  const rows = w.byCategory.map(c =>
-    `<tr><td style="padding:2px 10px">${esc(c.category)}</td><td style="padding:2px 10px;text-align:right">${c.days}日</td><td style="padding:2px 10px;text-align:right">${c.avgBookings.toFixed(1)}件/日</td></tr>`
-  ).join('');
-  const drop = w.dropPct !== null
-    ? `雨・雪の日は好天比 <b>${w.dropPct >= 0 ? '-' : '+'}${Math.round(Math.abs(w.dropPct) * 100)}%</b>`
-    : '天候データが不足しています';
-  return `<p style="font-size:14px;margin:0 0 8px">${drop}</p>
-<table style="font-size:13px;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:2px 10px">天候</th><th style="padding:2px 10px">日数</th><th style="padding:2px 10px">平均予約</th></tr></thead><tbody>${rows}</tbody></table>`;
 }

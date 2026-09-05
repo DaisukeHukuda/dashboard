@@ -1,13 +1,12 @@
 import type { Kpi } from './kpi.js';
 import type { Heatmap } from './heatmap.js';
-import type { WeatherJoin } from './weatherjoin.js';
 import type { TrendPoint } from './trend.js';
 
 const WD = ['日', '月', '火', '水', '木', '金', '土'];
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
-export function buildInsights(input: { kpi: Kpi; heatmap: Heatmap; weather: WeatherJoin; trend: TrendPoint[] }): string[] {
-  const { kpi, heatmap, weather } = input;
+export function buildInsights(input: { kpi: Kpi; heatmap: Heatmap; trend: TrendPoint[] }): string[] {
+  const { kpi, heatmap } = input;
   const out: string[] = [];
 
   out.push(`期間の予約 ${kpi.bookings} 件・売上 ${kpi.revenue.toLocaleString()} 円（客単価 ${kpi.avgPerBooking.toLocaleString()} 円）。`);
@@ -29,14 +28,6 @@ export function buildInsights(input: { kpi: Kpi; heatmap: Heatmap; weather: Weat
     if (byWeekday[maxW] > avg) {
       out.push(`最も予約が多い曜日は ${WD[maxW]}曜（平均比 +${pct(byWeekday[maxW] / avg - 1)}）。`);
     }
-  }
-
-  if (weather.dropPct !== null && weather.dryAvg > 0) {
-    // dropPct>0 は好天比で予約が減る＝雨天の落ち込み。負なら逆に増える（符号の二重表示を避ける）。
-    const wd = weather.dropPct >= 0
-      ? `平均 -${pct(weather.dropPct)}`
-      : `平均 +${pct(-weather.dropPct)}`;
-    out.push(`雨・雪の日は晴・曇の日より${wd}（雨天 ${weather.rainyAvg.toFixed(1)} 件/日 vs 好天 ${weather.dryAvg.toFixed(1)} 件/日）。`);
   }
 
   return out;

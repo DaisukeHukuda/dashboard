@@ -37,7 +37,6 @@ const base: DashboardData = {
   cohorts: [],
   courseRows: [],
   sourceRows: [],
-  weather: { rainyAvg: 0, dryAvg: 0, dropPct: null, byCategory: [] },
   insights: [],
   granularity: 'month',
   trendPrior: [],
@@ -53,8 +52,6 @@ describe('dashboard rendering', () => {
       DASH: fakeKV(),
       ADMIN_USER: 'admin', ADMIN_PASSWORD: 'pw', SESSION_SECRET: 'secret',
     };
-    // 天候 fetch をスタブ（グローバル fetch）
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ daily: { time: [], weathercode: [], temperature_2m_max: [], precipitation_sum: [] } }) }));
     const exp = Math.floor(Date.now() / 1000) + 3600;
     const cookie = `sess=${await createSession({ username: 'admin', exp }, 'secret')}`;
     const res = await worker.fetch(new Request('https://x/?period=all', { headers: { cookie } }), env);

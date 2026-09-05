@@ -1,5 +1,5 @@
 // ダッシュボードの並び替え可能セクション。並び順は DASH KV に保存する。
-export const SECTION_IDS = ['kpi', 'insights', 'trend', 'heatmap', 'weather', 'cohort', 'course', 'source', 'ga4', 'ig'] as const;
+export const SECTION_IDS = ['kpi', 'insights', 'trend', 'heatmap', 'cohort', 'course', 'source', 'ga4', 'ig'] as const;
 export type SectionId = (typeof SECTION_IDS)[number];
 export const DEFAULT_ORDER: SectionId[] = [...SECTION_IDS];
 export const SECTION_ORDER_KEY = 'ui:sectionOrder';

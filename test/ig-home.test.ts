@@ -12,7 +12,6 @@ const history: HistoryRecord[] = [{ date: '2024-06-08', course: 'A', pax: 2, amo
 describe('home IG wiring', () => {
   it('shows Instagram not-connected notice when env missing (Phase 1 still renders)', async () => {
     const env: Env = { DATA: fakeKV({ 'history:latest': JSON.stringify(history) }), DASH: fakeKV(), ADMIN_USER: 'admin', ADMIN_PASSWORD: 'pw', SESSION_SECRET: 'secret' };
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ daily: { time: [], weathercode: [], temperature_2m_max: [], precipitation_sum: [] } }) }));
     const exp = Math.floor(Date.now() / 1000) + 3600;
     const cookie = `sess=${await createSession({ username: 'admin', exp }, 'secret')}`;
     const res = await worker.fetch(new Request('https://x/?period=all', { headers: { cookie } }), env);
@@ -25,14 +24,11 @@ describe('home IG wiring', () => {
   });
 
   // reach（アカウント全体）insightsのみ成否を切り替えられるfetchスタブ。
-  // URLをパスで判別: 天候(open-meteo) / アカウントreach(insights かつ metric=reach&) /
+  // URLをパスで判別: アカウントreach(insights かつ metric=reach&) /
   // media一覧(/media?) / 投稿別insights(m1/insights) / アカウント基本情報(fields=followers_count)
   function stubIgFetch(reachOk: boolean) {
     return vi.fn(async (input: string | URL | Request) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-      if (url.includes('open-meteo')) {
-        return { ok: true, json: async () => ({ daily: { time: [], weathercode: [], temperature_2m_max: [], precipitation_sum: [] } }) };
-      }
       if (url.includes('/insights') && url.includes('metric=reach&')) {
         if (!reachOk) return { ok: false, status: 400 };
         return { ok: true, json: async () => ({ data: [{ name: 'reach', period: 'day', values: [{ value: 100, end_time: '2024-07-10T07:00:00+0000' }] }] }) };

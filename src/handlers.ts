@@ -10,11 +10,7 @@ import { computeHeatmap, courseList } from './metrics/heatmap.js';
 import { computeCohorts } from './metrics/cohort.js';
 import { computeCourseBreakdown } from './metrics/course.js';
 import { computeSourceBreakdown } from './metrics/source.js';
-import { fetchWeather } from './weather.js';
-import { computeWeatherJoin } from './metrics/weatherjoin.js';
-import type { WeatherJoin } from './metrics/weatherjoin.js';
 import { buildInsights } from './metrics/insights.js';
-import type { WxCategory } from './weather.js';
 import { runReport } from './ga4/client.js';
 import { getAccessToken } from './ga4/auth.js';
 import { CHANNEL_SPEC, SOURCE_MEDIUM_SPEC, TOP_PAGES_SPEC, DEVICE_SPEC, REGION_SPEC, DAILY_SESSIONS_SPEC, toNameValues, toDailySessions } from './ga4/reports.js';
@@ -29,7 +25,6 @@ import { buildIgInsights } from './ig/insights.js';
 import type { SocialData } from './ig/section.js';
 import type { IgSeriesPoint, IgPostRow } from './ig/types.js';
 import { applyOrder, isValidOrder, SECTION_ORDER_KEY } from './sections.js';
-type WeatherJoinCat = { category: WxCategory; days: number; avgBookings: number };
 
 const SESSION_TTL = 7 * 24 * 3600;
 const html = (s: string, status = 200) => new Response(s, { status, headers: { 'content-type': 'text/html; charset=utf-8' } });
@@ -75,14 +70,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
   const courseRows = computeCourseBreakdown(all, period);
   const sourceRows = computeSourceBreakdown(all, period);
 
-  // 天候は失敗してもダッシュボードは描画する
-  let weather: WeatherJoin = { rainyAvg: 0, dryAvg: 0, dropPct: null, byCategory: [] as WeatherJoinCat[] };
-  try {
-    const wx = await fetchWeather(env.DASH, period.start, period.end);
-    weather = computeWeatherJoin(all, period, wx);
-  } catch { /* 天候取得失敗時は空表示 */ }
-
-  const insights = buildInsights({ kpi, heatmap, weather, trend });
+  const insights = buildInsights({ kpi, heatmap, trend });
 
   // GA4 未設定/失敗時は Phase 1 を退行させず未接続表示にフォールバック
   const emptyTraffic: TrafficData = { channels: [], sourceMedium: [], topPages: [], devices: [], regions: [], overlay: [], insights: [], connected: false };
@@ -158,7 +146,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
   } catch { /* 並び順が読めなくても既定順で表示する */ }
 
   return html(renderDashboard({
-    period, kpi, trend, heatmap, courses, selectedCourse, cohorts, courseRows, sourceRows, weather, insights, granularity: gran, trendPrior, traffic, social, sectionOrder,
+    period, kpi, trend, heatmap, courses, selectedCourse, cohorts, courseRows, sourceRows, insights, granularity: gran, trendPrior, traffic, social, sectionOrder,
   }));
 }
 

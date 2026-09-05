@@ -17,7 +17,6 @@ async function cookie() {
 describe('home GA4 wiring', () => {
   it('shows GA4 not-connected notice when env is missing (Phase 1 still renders)', async () => {
     const env: Env = { DATA: fakeKV({ 'history:latest': JSON.stringify(history) }), DASH: fakeKV(), ADMIN_USER: 'admin', ADMIN_PASSWORD: 'pw', SESSION_SECRET: 'secret' };
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ daily: { time: [], weathercode: [], temperature_2m_max: [], precipitation_sum: [] } }) }));
     const res = await worker.fetch(new Request('https://x/?period=all', { headers: { cookie: await cookie() } }), env);
     const html = await res.text();
     expect(res.status).toBe(200);
