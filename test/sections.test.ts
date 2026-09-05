@@ -28,6 +28,19 @@ describe('sections', () => {
       expect(result.indexOf('weather')).toBe(result.indexOf('heatmap') + 1);
       expect(result.length).toBe(DEFAULT_ORDER.length);
     });
+    it('先頭の既定ID（kpi）が保存に無い場合は先頭に挿入される', () => {
+      const savedWithoutKpi = DEFAULT_ORDER.filter(id => id !== 'kpi');
+      const result = applyOrder(savedWithoutKpi);
+      expect(result[0]).toBe('kpi');
+      expect(result.length).toBe(DEFAULT_ORDER.length);
+    });
+    it('連続して欠けた既定IDも既定順の直前IDの直後に連なって入る', () => {
+      const savedWithoutTwo = DEFAULT_ORDER.filter(id => id !== 'insights' && id !== 'trend');
+      const result = applyOrder(savedWithoutTwo);
+      expect(result.indexOf('insights')).toBe(result.indexOf('kpi') + 1);
+      expect(result.indexOf('trend')).toBe(result.indexOf('insights') + 1);
+      expect(result.length).toBe(DEFAULT_ORDER.length);
+    });
   });
 
   describe('isValidOrder', () => {
