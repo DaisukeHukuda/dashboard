@@ -93,4 +93,15 @@ describe('dashboard rendering', () => {
     const ids = [...html.matchAll(/data-sec="([a-z0-9]+)"/g)].map(m => m[1]);
     expect(ids).toEqual(DEFAULT_ORDER);
   });
+
+  it('並び替えUI（ボタン・編集バー・保存JS）を含む', () => {
+    const html = renderDashboard({ ...base, sectionOrder: [...DEFAULT_ORDER] });
+    expect(html).toContain('id="reorderBtn"');
+    expect(html).toContain('id="reorderBar"');
+    expect(html).toContain('id="reorderSave"');
+    expect(html).toContain('id="reorderCancel"');
+    expect(html).toContain('/api/section-order');
+    expect(html).toContain('data-dir="-1"'); // ↑ボタン
+    expect(html).toContain('data-dir="1"');  // ↓ボタン
+  });
 });

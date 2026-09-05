@@ -33,6 +33,14 @@ a{color:var(--accent)}
 label{display:block;margin:8px 0 4px;font-size:13px;color:var(--muted)}
 input,select{padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px}
 button{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:9px 16px;font-size:14px;cursor:pointer}
+.sec-tools{display:none;gap:8px;margin:0 0 8px}
+body.reorder .sec-tools{display:flex}
+.sec-tools button{min-height:44px;min-width:80px;font-size:14px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+.sec-tools button:disabled{opacity:.3}
+#reorderBar{position:sticky;top:0;z-index:10;display:flex;gap:10px;align-items:center}
+#reorderBar button{min-height:44px;min-width:88px;font-size:14px;border-radius:8px;border:1px solid var(--line)}
+#reorderSave{background:var(--accent);color:#fff;border:none}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;z-index:20}
 </style></head><body>${body}</body></html>`;
 }
 
@@ -131,15 +139,61 @@ ${renderCourseBars(d.sourceRows)}</div>`,
     ga4: renderTrafficSection(d.traffic),
     ig: renderSocialSection(d.social),
   };
+  const secTools = `<div class="sec-tools"><button type="button" class="mv" data-dir="-1">↑ 上へ</button><button type="button" class="mv" data-dir="1">↓ 下へ</button></div>`;
   const orderedSections = d.sectionOrder
-    .map(id => `<section class="sec" data-sec="${id}">${sections[id]}</section>`)
+    .map(id => `<section class="sec" data-sec="${id}">${secTools}${sections[id]}</section>`)
     .join('\n');
 
-  const body = `<header>Sup! Sup! マーケ分析ダッシュボード <a href="/logout" style="color:#cbd5e1;font-size:12px;float:right">ログアウト</a></header>
+  const body = `<header>Sup! Sup! マーケ分析ダッシュボード <span style="float:right;display:flex;gap:12px;align-items:center"><button type="button" id="reorderBtn" style="background:none;border:1px solid #cbd5e1;color:#cbd5e1;font-size:12px;border-radius:6px;padding:2px 8px;cursor:pointer">並び替え</button><a href="/logout" style="color:#cbd5e1;font-size:12px">ログアウト</a></span></header>
 <main>
 <div class="card" style="display:flex;justify-content:space-between;align-items:center">${periodSelect(d.period)}<span style="font-size:12px;color:var(--muted)">${esc(d.period.label)}</span></div>
+<div id="reorderBar" class="card" hidden>並び順を編集中：各ブロックの「↑ 上へ」「↓ 下へ」で移動 <button type="button" id="reorderSave">完了</button> <button type="button" id="reorderCancel">キャンセル</button></div>
 
 ${orderedSections}
+<script>
+(function(){
+  var btn=document.getElementById('reorderBtn');
+  var bar=document.getElementById('reorderBar');
+  if(!btn||!bar)return;
+  function refresh(){
+    var secs=[].slice.call(document.querySelectorAll('section.sec'));
+    secs.forEach(function(s,i){
+      var up=s.querySelector('[data-dir="-1"]');
+      var dn=s.querySelector('[data-dir="1"]');
+      if(up)up.disabled=(i===0);
+      if(dn)dn.disabled=(i===secs.length-1);
+    });
+  }
+  btn.addEventListener('click',function(){
+    document.body.classList.add('reorder');bar.hidden=false;btn.hidden=true;refresh();
+    window.scrollTo({top:0});
+  });
+  document.getElementById('reorderCancel').addEventListener('click',function(){location.reload();});
+  document.addEventListener('click',function(e){
+    var t=e.target;
+    var b=(t&&t.closest)?t.closest('.mv'):null;
+    if(!b||b.disabled)return;
+    var sec=b.closest('section.sec');
+    var dir=Number(b.getAttribute('data-dir'));
+    var prev=sec.previousElementSibling,next=sec.nextElementSibling;
+    if(dir<0&&prev&&prev.classList.contains('sec'))sec.parentNode.insertBefore(sec,prev);
+    if(dir>0&&next&&next.classList.contains('sec'))sec.parentNode.insertBefore(next,sec);
+    refresh();
+    sec.scrollIntoView({block:'nearest'});
+  });
+  document.getElementById('reorderSave').addEventListener('click',function(){
+    var order=[].slice.call(document.querySelectorAll('section.sec')).map(function(s){return s.getAttribute('data-sec');});
+    fetch('/api/section-order',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({order:order})})
+      .then(function(r){
+        if(!r.ok)throw new Error('save failed');
+        document.body.classList.remove('reorder');bar.hidden=true;btn.hidden=false;
+        var toast=document.createElement('div');toast.className='toast';toast.textContent='並び順を保存しました';
+        document.body.appendChild(toast);setTimeout(function(){toast.remove();},2500);
+      })
+      .catch(function(){alert('保存に失敗しました。通信環境を確認して再度お試しください');});
+  });
+})();
+</script>
 </main>`;
   return layout('ダッシュボード｜Sup! Sup! マーケ分析', body);
 }
