@@ -1,6 +1,6 @@
 import type { KV } from './kv.js';
 import { verifySession } from './auth.js';
-import { handleLogin, handleLogout, handleHome } from './handlers.js';
+import { handleLogin, handleLogout, handleHome, handleSectionOrder } from './handlers.js';
 import { loginPage } from './pages.js';
 
 export interface Env {
@@ -36,9 +36,13 @@ async function handle(req: Request, env: Env): Promise<Response> {
 
   const token = getCookie(req, 'sess');
   const user = token ? await verifySession(token, env.SESSION_SECRET) : null;
+  if (!user && path.startsWith('/api/')) {
+    return new Response(JSON.stringify({ ok: false }), { status: 401, headers: { 'content-type': 'application/json; charset=utf-8' } });
+  }
   if (!user) return html(loginPage());
 
   if (path === '/' && method === 'GET') return handleHome(url, env, user.username);
+  if (path === '/api/section-order' && method === 'POST') return handleSectionOrder(req, env);
   return new Response('not found', { status: 404 });
 }
 

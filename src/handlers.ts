@@ -28,11 +28,13 @@ import { computeSocialOverlay } from './metrics/social.js';
 import { buildIgInsights } from './ig/insights.js';
 import type { SocialData } from './ig/section.js';
 import type { IgSeriesPoint, IgPostRow } from './ig/types.js';
-import { applyOrder, SECTION_ORDER_KEY } from './sections.js';
+import { applyOrder, isValidOrder, SECTION_ORDER_KEY } from './sections.js';
 type WeatherJoinCat = { category: WxCategory; days: number; avgBookings: number };
 
 const SESSION_TTL = 7 * 24 * 3600;
 const html = (s: string, status = 200) => new Response(s, { status, headers: { 'content-type': 'text/html; charset=utf-8' } });
+const json = (o: unknown, status = 200) =>
+  new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json; charset=utf-8' } });
 
 export async function handleLogin(req: Request, env: Env): Promise<Response> {
   const form = await req.formData();
@@ -158,4 +160,13 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
   return html(renderDashboard({
     period, kpi, trend, heatmap, courses, selectedCourse, cohorts, courseRows, sourceRows, weather, insights, granularity: gran, trendPrior, traffic, social, sectionOrder,
   }));
+}
+
+export async function handleSectionOrder(req: Request, env: Env): Promise<Response> {
+  let body: unknown;
+  try { body = await req.json(); } catch { return json({ ok: false }, 400); }
+  const order = (body as { order?: unknown } | null)?.order;
+  if (!isValidOrder(order)) return json({ ok: false }, 400);
+  await env.DASH.put(SECTION_ORDER_KEY, JSON.stringify(order));
+  return json({ ok: true });
 }
