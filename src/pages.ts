@@ -10,7 +10,7 @@ import { renderHeatmap } from './charts/heatmap.js';
 import { renderCohortGrid } from './charts/cohortgrid.js';
 import { renderTrafficSection, type TrafficData } from './ga4/section.js';
 import { renderSocialSection, type SocialData } from './ig/section.js';
-import { type SectionId } from './sections.js';
+import { type SectionId, type ViewId } from './sections.js';
 
 export function esc(s: string): string {
   return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
@@ -78,6 +78,7 @@ export interface DashboardData {
   traffic: TrafficData;
   social: SocialData;
   sectionOrder: SectionId[];
+  view: ViewId;
 }
 
 function periodSelect(period: Period): string {

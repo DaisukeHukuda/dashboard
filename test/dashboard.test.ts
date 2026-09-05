@@ -43,6 +43,7 @@ const base: DashboardData = {
   traffic: { channels: [], sourceMedium: [], topPages: [], devices: [], regions: [], overlay: [], insights: [], connected: false },
   social: { followers: [], reach: [], posts: [], overlay: [], insights: [], connected: false },
   sectionOrder: DEFAULT_ORDER,
+  view: 'all' as const,
 };
 
 describe('dashboard rendering', () => {

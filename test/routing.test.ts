@@ -61,7 +61,7 @@ describe('routing', () => {
     expect(post.status).toBe(200);
     expect(await post.json()).toEqual({ ok: true });
 
-    const home = await worker.fetch(new Request('https://x/', { headers: { cookie } }), env);
+    const home = await worker.fetch(new Request('https://x/?view=all', { headers: { cookie } }), env);
     const text = await home.text();
     const ids = [...text.matchAll(/data-sec="([a-z0-9]+)"/g)].map(m => m[1]);
     expect(ids).toEqual(saved);
@@ -89,5 +89,22 @@ describe('routing', () => {
       method: 'POST', headers: { cookie }, body: 'not-json',
     }), env);
     expect(notJson.status).toBe(400);
+  });
+
+  it('view=bookings ではIGの外部fetchが発生せず、view=sns では発生する', async () => {
+    const envIg: Env = { DATA: fakeKV(), DASH: fakeKV(), ADMIN_USER: 'admin', ADMIN_PASSWORD: 'pw', SESSION_SECRET: 'secret', IG_ACCESS_TOKEN: 'tok', IG_USER_ID: '17841000000000000' };
+    const form = new URLSearchParams({ username: 'admin', password: 'pw' });
+    const login = await worker.fetch(new Request('https://x/login', { method: 'POST', body: form }), envIg);
+    const cookie = cookieOf(login);
+    const spy = vi.fn().mockRejectedValue(new Error('offline'));
+    vi.stubGlobal('fetch', spy);
+    const home1 = await worker.fetch(new Request('https://x/?view=bookings', { headers: { cookie } }), envIg);
+    expect(home1.status).toBe(200);
+    expect(spy).not.toHaveBeenCalled(); // 予約分析ビューは外部API 0回
+    const home2 = await worker.fetch(new Request('https://x/?view=sns', { headers: { cookie } }), envIg);
+    expect(home2.status).toBe(200);
+    expect(spy).toHaveBeenCalled(); // IGビューでは取得を試みる（失敗しても未接続表示で200）
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 });

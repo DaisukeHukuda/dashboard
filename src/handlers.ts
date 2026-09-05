@@ -24,7 +24,7 @@ import { computeSocialOverlay } from './metrics/social.js';
 import { buildIgInsights } from './ig/insights.js';
 import type { SocialData } from './ig/section.js';
 import type { IgSeriesPoint, IgPostRow } from './ig/types.js';
-import { applyOrder, isValidOrder, SECTION_ORDER_KEY } from './sections.js';
+import { applyOrder, isValidOrder, resolveView, SECTION_ORDER_KEY } from './sections.js';
 
 const SESSION_TTL = 7 * 24 * 3600;
 const html = (s: string, status = 200) => new Response(s, { status, headers: { 'content-type': 'text/html; charset=utf-8' } });
@@ -56,6 +56,7 @@ export function handleLogout(): Response {
 }
 
 export async function handleHome(url: URL, env: Env, _username: string): Promise<Response> {
+  const view = resolveView(url.searchParams.get('view'));
   const period = resolvePeriod(url.searchParams.get('period'), jstToday());
   const selectedCourse = url.searchParams.get('course') ?? '';
   const gran = url.searchParams.get('g') === 'week' ? 'week' : 'month';
@@ -75,7 +76,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
   // GA4 未設定/失敗時は Phase 1 を退行させず未接続表示にフォールバック
   const emptyTraffic: TrafficData = { channels: [], sourceMedium: [], topPages: [], devices: [], regions: [], overlay: [], insights: [], connected: false };
   let traffic: TrafficData = emptyTraffic;
-  if (env.GA4_SA_JSON_B64 && env.GA4_PROPERTY_ID) {
+  if ((view === 'web' || view === 'all') && env.GA4_SA_JSON_B64 && env.GA4_PROPERTY_ID) {
     try {
       await getAccessToken(env);
       const range = { start: period.start, end: period.end };
@@ -101,7 +102,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
   // IG 未設定/失敗時は Phase 1/2 を退行させず未接続表示にフォールバック
   const emptySocial: SocialData = { followers: [], reach: [], posts: [], overlay: [], insights: [], connected: false };
   let social: SocialData = emptySocial;
-  if (env.IG_ACCESS_TOKEN && env.IG_USER_ID) {
+  if ((view === 'sns' || view === 'all') && env.IG_ACCESS_TOKEN && env.IG_USER_ID) {
     try {
       const uid = env.IG_USER_ID;
       // アカウント取得＝接続判定。ここが失敗したら本当に未接続（外側catchでemptySocialに落ちる）
@@ -146,7 +147,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
   } catch { /* 並び順が読めなくても既定順で表示する */ }
 
   return html(renderDashboard({
-    period, kpi, trend, heatmap, courses, selectedCourse, cohorts, courseRows, sourceRows, insights, granularity: gran, trendPrior, traffic, social, sectionOrder,
+    period, kpi, trend, heatmap, courses, selectedCourse, cohorts, courseRows, sourceRows, insights, granularity: gran, trendPrior, traffic, social, sectionOrder, view,
   }));
 }
 

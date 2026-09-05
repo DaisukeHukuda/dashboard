@@ -55,7 +55,7 @@ describe('home IG wiring', () => {
     vi.stubGlobal('fetch', stubIgFetch(true));
     const exp = Math.floor(Date.now() / 1000) + 3600;
     const cookie = `sess=${await createSession({ username: 'admin', exp }, 'secret')}`;
-    const res = await worker.fetch(new Request('https://x/?period=all', { headers: { cookie } }), env);
+    const res = await worker.fetch(new Request('https://x/?period=all&view=all', { headers: { cookie } }), env);
     const html = await res.text();
     expect(res.status).toBe(200);
     expect(html).toContain('フォロワー推移');
@@ -70,7 +70,7 @@ describe('home IG wiring', () => {
     vi.stubGlobal('fetch', stubIgFetch(false));
     const exp = Math.floor(Date.now() / 1000) + 3600;
     const cookie = `sess=${await createSession({ username: 'admin', exp }, 'secret')}`;
-    const res = await worker.fetch(new Request('https://x/?period=all', { headers: { cookie } }), env);
+    const res = await worker.fetch(new Request('https://x/?period=all&view=all', { headers: { cookie } }), env);
     const html = await res.text();
     expect(res.status).toBe(200);
     expect(html).toContain('投稿別エンゲージメント');
