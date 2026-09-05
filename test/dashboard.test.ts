@@ -4,6 +4,7 @@ import { createSession } from '../src/auth.js';
 import type { HistoryRecord } from '../src/types.js';
 import { renderDashboard, type DashboardData } from '../src/pages.js';
 import { resolvePeriod } from '../src/period.js';
+import { DEFAULT_ORDER } from '../src/sections.js';
 
 function fakeKV(seed?: Record<string, string>) {
   const m = new Map<string, string>(Object.entries(seed ?? {}));
@@ -42,6 +43,7 @@ const base: DashboardData = {
   trendPrior: [],
   traffic: { channels: [], sourceMedium: [], topPages: [], devices: [], regions: [], overlay: [], insights: [], connected: false },
   social: { followers: [], reach: [], posts: [], overlay: [], insights: [], connected: false },
+  sectionOrder: DEFAULT_ORDER,
 };
 
 describe('dashboard rendering', () => {
@@ -78,5 +80,17 @@ describe('dashboard rendering', () => {
   it('last12 では従来どおり前年比ラベル', () => {
     const html = renderDashboard({ ...base, period: resolvePeriod('last12', '2026-09-05') });
     expect(html).toContain('前年比');
+  });
+
+  it('sectionOrder の順に data-sec が並ぶ', () => {
+    const order = [...DEFAULT_ORDER].reverse();
+    const html = renderDashboard({ ...base, sectionOrder: order });
+    const ids = [...html.matchAll(/data-sec="([a-z0-9]+)"/g)].map(m => m[1]);
+    expect(ids).toEqual(order);
+  });
+  it('既定順では kpi が先頭', () => {
+    const html = renderDashboard({ ...base, sectionOrder: [...DEFAULT_ORDER] });
+    const ids = [...html.matchAll(/data-sec="([a-z0-9]+)"/g)].map(m => m[1]);
+    expect(ids).toEqual(DEFAULT_ORDER);
   });
 });

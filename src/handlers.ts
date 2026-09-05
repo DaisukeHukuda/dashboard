@@ -28,6 +28,7 @@ import { computeSocialOverlay } from './metrics/social.js';
 import { buildIgInsights } from './ig/insights.js';
 import type { SocialData } from './ig/section.js';
 import type { IgSeriesPoint, IgPostRow } from './ig/types.js';
+import { applyOrder, SECTION_ORDER_KEY } from './sections.js';
 type WeatherJoinCat = { category: WxCategory; days: number; avgBookings: number };
 
 const SESSION_TTL = 7 * 24 * 3600;
@@ -148,7 +149,13 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
     } catch { social = emptySocial; }
   }
 
+  let sectionOrder = applyOrder(null);
+  try {
+    const rawOrder = await env.DASH.get(SECTION_ORDER_KEY);
+    if (rawOrder) sectionOrder = applyOrder(JSON.parse(rawOrder));
+  } catch { /* 並び順が読めなくても既定順で表示する */ }
+
   return html(renderDashboard({
-    period, kpi, trend, heatmap, courses, selectedCourse, cohorts, courseRows, sourceRows, weather, insights, granularity: gran, trendPrior, traffic, social,
+    period, kpi, trend, heatmap, courses, selectedCourse, cohorts, courseRows, sourceRows, weather, insights, granularity: gran, trendPrior, traffic, social, sectionOrder,
   }));
 }

@@ -11,6 +11,7 @@ import { renderHeatmap } from './charts/heatmap.js';
 import { renderCohortGrid } from './charts/cohortgrid.js';
 import { renderTrafficSection, type TrafficData } from './ga4/section.js';
 import { renderSocialSection, type SocialData } from './ig/section.js';
+import { type SectionId } from './sections.js';
 
 export function esc(s: string): string {
   return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
@@ -66,6 +67,7 @@ export interface DashboardData {
   granularity: 'month' | 'week'; trendPrior: (number | null)[];
   traffic: TrafficData;
   social: SocialData;
+  sectionOrder: SectionId[];
 }
 
 function periodSelect(period: Period): string {
@@ -108,38 +110,36 @@ export function renderDashboard(d: DashboardData): string {
     return `<a href="/?${params.toString()}" style="font-size:12px;padding:2px 8px;border-radius:6px;text-decoration:none;${active ? 'background:var(--accent);color:#fff' : 'color:var(--accent)'}">${esc(label)}</a>`;
   };
 
+  const sections: Record<SectionId, string> = {
+    kpi: `<div class="card"><h2>KPI サマリー</h2><div style="display:flex;gap:10px;flex-wrap:wrap">${kpis}</div></div>`,
+    insights: `<div class="card"><h2>戦略インサイト</h2><ul style="margin:0;padding-left:18px;font-size:14px">${insightList}</ul></div>`,
+    trend: `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+<h2 style="margin:0">売上・予約トレンド（棒=売上 / 線=件数）</h2>
+<span>${gToggle('month', '月次')} ${gToggle('week', '週次')}</span></div>
+${renderTrendChart(d.trend, d.trendPrior)}</div>`,
+    heatmap: `<div class="card"><h2>季節 × 曜日ヒートマップ</h2>
+<form method="get" style="margin-bottom:8px">
+<input type="hidden" name="period" value="${d.period.kind === 'year' ? d.period.start.slice(0, 4) : d.period.kind}">
+<select name="course" onchange="this.form.submit()">${courseOpts}</select>
+</form>${renderHeatmap(d.heatmap)}</div>`,
+    weather: `<div class="card"><h2>天候相関</h2>${renderWeatherBlock(d.weather)}</div>`,
+    cohort: `<div class="card"><h2>リピーター・コホート再訪率（初回月別・全期間）</h2>${renderCohortGrid(d.cohorts)}</div>`,
+    course: `<div class="card"><h2>コース別内訳</h2>${renderCourseBars(d.courseRows)}</div>`,
+    source: `<div class="card"><h2>流入経路（お客様の自己申告）</h2>
+<p style="font-size:12px;color:var(--muted);margin:0 0 8px">予約時アンケート「ご予約の経緯」を分類したもの。sync 更新前の履歴は「不明」と表示されます。</p>
+${renderCourseBars(d.sourceRows)}</div>`,
+    ga4: renderTrafficSection(d.traffic),
+    ig: renderSocialSection(d.social),
+  };
+  const orderedSections = d.sectionOrder
+    .map(id => `<section class="sec" data-sec="${id}">${sections[id]}</section>`)
+    .join('\n');
+
   const body = `<header>Sup! Sup! マーケ分析ダッシュボード <a href="/logout" style="color:#cbd5e1;font-size:12px;float:right">ログアウト</a></header>
 <main>
 <div class="card" style="display:flex;justify-content:space-between;align-items:center">${periodSelect(d.period)}<span style="font-size:12px;color:var(--muted)">${esc(d.period.label)}</span></div>
 
-<div class="card"><h2>KPI サマリー</h2><div style="display:flex;gap:10px;flex-wrap:wrap">${kpis}</div></div>
-
-<div class="card"><h2>戦略インサイト</h2><ul style="margin:0;padding-left:18px;font-size:14px">${insightList}</ul></div>
-
-<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-<h2 style="margin:0">売上・予約トレンド（棒=売上 / 線=件数）</h2>
-<span>${gToggle('month', '月次')} ${gToggle('week', '週次')}</span></div>
-${renderTrendChart(d.trend, d.trendPrior)}</div>
-
-<div class="card"><h2>季節 × 曜日ヒートマップ</h2>
-<form method="get" style="margin-bottom:8px">
-<input type="hidden" name="period" value="${d.period.kind === 'year' ? d.period.start.slice(0, 4) : d.period.kind}">
-<select name="course" onchange="this.form.submit()">${courseOpts}</select>
-</form>${renderHeatmap(d.heatmap)}</div>
-
-<div class="card"><h2>天候相関</h2>${renderWeatherBlock(d.weather)}</div>
-
-<div class="card"><h2>リピーター・コホート再訪率（初回月別・全期間）</h2>${renderCohortGrid(d.cohorts)}</div>
-
-<div class="card"><h2>コース別内訳</h2>${renderCourseBars(d.courseRows)}</div>
-
-<div class="card"><h2>流入経路（お客様の自己申告）</h2>
-<p style="font-size:12px;color:var(--muted);margin:0 0 8px">予約時アンケート「ご予約の経緯」を分類したもの。sync 更新前の履歴は「不明」と表示されます。</p>
-${renderCourseBars(d.sourceRows)}</div>
-
-${renderTrafficSection(d.traffic)}
-
-${renderSocialSection(d.social)}
+${orderedSections}
 </main>`;
   return layout('ダッシュボード｜Sup! Sup! マーケ分析', body);
 }
