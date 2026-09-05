@@ -40,6 +40,7 @@ body.reorder #reorderBar{position:sticky;top:0;z-index:10;display:flex;gap:10px;
 #reorderBar button{min-height:44px;min-width:88px;font-size:14px;border-radius:8px;border:1px solid var(--line)}
 #reorderSave{background:var(--accent);color:#fff;border:none}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;z-index:20}
+.p-note{font-size:11px;color:var(--muted);font-weight:400;margin-left:8px}
 </style></head><body>${body}</body></html>`;
 }
 
@@ -55,6 +56,7 @@ export function loginPage(error?: string): string {
 }
 
 const yen = (n: number) => `${n.toLocaleString()}円`;
+const pnote = (t: string) => `<span class="p-note">対象: ${t}</span>`;
 function yoyLabel(v: number | null): string {
   if (v === null) return '—';
   const d = v - 1;
@@ -93,6 +95,7 @@ ${years.map(y => opt(String(y), `${y}年`, cur === String(y))).join('')}
 
 export function renderDashboard(d: DashboardData): string {
   const k = d.kpi;
+  const range = `${d.period.start}〜${d.period.end}`;
   const cmp = d.period.kind === 'last24' ? '前24ヶ月比' : '前年比';
   const kpis = [
     kpiCard('予約件数', `${k.bookings}件`, `${cmp} ${yoyLabel(k.yoyBookings)}`),
@@ -118,24 +121,24 @@ export function renderDashboard(d: DashboardData): string {
   };
 
   const sections: Record<SectionId, string> = {
-    kpi: `<div class="card"><h2>KPI サマリー</h2><div style="display:flex;gap:10px;flex-wrap:wrap">${kpis}</div></div>`,
-    insights: `<div class="card"><h2>戦略インサイト</h2><ul style="margin:0;padding-left:18px;font-size:14px">${insightList}</ul></div>`,
+    kpi: `<div class="card"><h2>KPI サマリー${pnote(range)}</h2><div style="display:flex;gap:10px;flex-wrap:wrap">${kpis}</div></div>`,
+    insights: `<div class="card"><h2>戦略インサイト${pnote(range)}</h2><ul style="margin:0;padding-left:18px;font-size:14px">${insightList}</ul></div>`,
     trend: `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-<h2 style="margin:0">売上・予約トレンド（棒=売上 / 線=件数）</h2>
+<h2 style="margin:0">売上・予約トレンド（棒=売上 / 線=件数）${pnote(range)}</h2>
 <span>${gToggle('month', '月次')} ${gToggle('week', '週次')}</span></div>
 ${renderTrendChart(d.trend, d.trendPrior)}</div>`,
-    heatmap: `<div class="card"><h2>季節 × 曜日ヒートマップ</h2>
+    heatmap: `<div class="card"><h2>季節 × 曜日ヒートマップ${pnote(range)}</h2>
 <form method="get" style="margin-bottom:8px">
 <input type="hidden" name="period" value="${d.period.kind === 'year' ? d.period.start.slice(0, 4) : d.period.kind}">
 <select name="course" onchange="this.form.submit()">${courseOpts}</select>
 </form>${renderHeatmap(d.heatmap)}</div>`,
-    cohort: `<div class="card"><h2>リピーター・コホート再訪率（初回月別・全期間）</h2>${renderCohortGrid(d.cohorts)}</div>`,
-    course: `<div class="card"><h2>コース別内訳</h2>${renderCourseBars(d.courseRows)}</div>`,
-    source: `<div class="card"><h2>流入経路（お客様の自己申告）</h2>
+    cohort: `<div class="card"><h2>リピーター・コホート再訪率（初回月別・全期間）${pnote('全期間')}</h2>${renderCohortGrid(d.cohorts)}</div>`,
+    course: `<div class="card"><h2>コース別内訳${pnote(range)}</h2>${renderCourseBars(d.courseRows)}</div>`,
+    source: `<div class="card"><h2>流入経路（お客様の自己申告）${pnote(range)}</h2>
 <p style="font-size:12px;color:var(--muted);margin:0 0 8px">予約時アンケート「ご予約の経緯」を分類したもの。sync 更新前の履歴は「不明」と表示されます。</p>
 ${renderCourseBars(d.sourceRows)}</div>`,
-    ga4: renderTrafficSection(d.traffic),
-    ig: renderSocialSection(d.social),
+    ga4: renderTrafficSection(d.traffic, range),
+    ig: renderSocialSection(d.social, range),
   };
   const secTools = `<div class="sec-tools"><button type="button" class="mv" data-dir="-1">↑ 上へ</button><button type="button" class="mv" data-dir="1">↓ 下へ</button></div>`;
   const orderedSections = d.sectionOrder

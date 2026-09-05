@@ -103,4 +103,11 @@ describe('dashboard rendering', () => {
     expect(html).toMatch(/id="reorderBar"[^>]*\shidden[\s>]/); // 初期状態はhidden属性つき
     expect(html).toContain('body.reorder #reorderBar');          // 表示はモード中のみ（CSSがhiddenを打ち消さない）
   });
+
+  it('各ブロックに対象期間ラベルが出る', () => {
+    const html = renderDashboard({ ...base, period: resolvePeriod('last12', '2026-09-05') });
+    expect(html).toContain('class="p-note"');
+    expect(html).toContain('対象: 2025-09-06〜2026-09-05'); // KPI等の期間連動ブロック
+    expect(html).toContain('対象: 全期間'); // コホート
+  });
 });

@@ -5,21 +5,26 @@ const base = { channels: [], sourceMedium: [], topPages: [], devices: [], region
 
 describe('renderTrafficSection', () => {
   it('shows a not-connected notice when connected=false', () => {
-    const html = renderTrafficSection({ ...base, connected: false });
+    const html = renderTrafficSection({ ...base, connected: false }, '2025-09-06〜2026-09-05');
     expect(html).toContain('GA4');
     expect(html).toContain('未接続');
   });
   it('renders channel/pages/overlay cards when connected', () => {
-    const html = renderTrafficSection({
+    const connectedFixture = {
       ...base, connected: true,
       channels: [{ label: 'Organic Search', sessions: 60, users: 40 }],
       topPages: [{ label: '/tour', sessions: 20 }],
       overlay: [{ bucket: '2024-06', sessions: 100, bookings: 5 }],
       insights: ['流入の最大チャネルは Organic Search（全体の 100%）。'],
-    });
+    };
+    const html = renderTrafficSection(connectedFixture, '2025-09-06〜2026-09-05');
     expect(html).toContain('流入チャネル');
     expect(html).toContain('Organic Search');
     expect(html).toContain('人気ページ');
     expect(html).toContain('認知→予約');
+  });
+  it('接続済みは見出しに対象期間ラベルが出る', () => {
+    const connectedFixture = { ...base, connected: true };
+    expect(renderTrafficSection(connectedFixture, '2025-09-06〜2026-09-05')).toContain('対象: 2025-09-06〜2026-09-05');
   });
 });
