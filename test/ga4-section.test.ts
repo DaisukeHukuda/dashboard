@@ -9,6 +9,18 @@ describe('renderTrafficSection', () => {
     expect(html).toContain('GA4');
     expect(html).toContain('未接続');
   });
+  it('unavailable=trueの場合は一時的な取得失敗の文言を出す（未接続の文言とは異なる）', () => {
+    const html = renderTrafficSection({ ...base, connected: false, unavailable: true }, 'x');
+    expect(html).toContain('Web流入（GA4）');
+    expect(html).toContain('GA4のデータを一時的に取得できませんでした');
+    expect(html).toContain('再読み込み');
+    expect(html).not.toContain('未接続');
+  });
+  it('unavailable未指定(false相当)の場合は従来どおり未接続文言', () => {
+    const html = renderTrafficSection({ ...base, connected: false }, 'x');
+    expect(html).toContain('未接続');
+    expect(html).not.toContain('一時的に取得できません');
+  });
   it('renders channel/pages/overlay cards when connected', () => {
     const connectedFixture = {
       ...base, connected: true,
@@ -52,9 +64,46 @@ describe('renderTrafficSection', () => {
     const series = { buckets: ['2026-05', '2026-06'], series: [{ name: 'Google検索', values: [10, 12] }] };
     const withS = renderTrafficSection({ ...connectedFixture, sourceSeries: series, pageSeries: series }, 'x');
     expect((withS.match(/<polyline/g) ?? []).length).toBeGreaterThanOrEqual(2);
-    expect(withS).toContain('上位5件＋その他');
+    expect(withS).toContain('上位1件のセッション推移（月次）');
     const noS = renderTrafficSection({ ...connectedFixture, sourceSeries: null, pageSeries: null }, 'x');
     expect(noS).not.toContain('<polyline');
+  });
+  it('注記は実データから生成される：上位2件＋その他のセッション推移（月次）', () => {
+    const connectedFixture = { ...base, connected: true, sourceMedium: [{ label: 'google / organic', sessions: 10 }] };
+    const series = {
+      buckets: ['2026-05', '2026-06'],
+      series: [{ name: 'Google検索', values: [10, 12] }, { name: 'Instagram', values: [3, 4] }, { name: 'その他', values: [1, 2] }],
+    };
+    const html = renderTrafficSection({ ...connectedFixture, sourceSeries: series }, 'x');
+    expect(html).toContain('上位2件＋その他のセッション推移（月次）');
+  });
+  it('注記は粒度ラベルにも従う：上位1件の表示回数推移（日次）・その他なし', () => {
+    const connectedFixture = { ...base, connected: true, topPages: [{ label: '/tour', sessions: 20 }] };
+    const series = { buckets: ['2026-08-01'], series: [{ name: 'トップページ', values: [5] }] };
+    const html = renderTrafficSection({ ...connectedFixture, pageSeries: series }, 'x', '日次');
+    expect(html).toContain('上位1件の表示回数推移（日次）');
+    expect(html).not.toContain('その他');
+  });
+  it('空のseries（buckets/seriesが0件）では注記もグラフも出さない', () => {
+    const connectedFixture = { ...base, connected: true, sourceMedium: [{ label: 'google / organic', sessions: 10 }] };
+    const emptyBuckets = { buckets: [], series: [{ name: 'Google検索', values: [] }] };
+    const emptySeries = { buckets: ['2026-05'], series: [] };
+    const html1 = renderTrafficSection({ ...connectedFixture, sourceSeries: emptyBuckets }, 'x');
+    const html2 = renderTrafficSection({ ...connectedFixture, sourceSeries: emptySeries }, 'x');
+    expect(html1).not.toContain('件の');
+    expect(html1).not.toContain('<polyline');
+    expect(html2).not.toContain('件の');
+    expect(html2).not.toContain('<polyline');
+  });
+  it('人気ページ表のヘッダは「表示回数」', () => {
+    const connectedFixture = { ...base, connected: true, topPages: [{ label: '/tour', sessions: 20 }] };
+    const html = renderTrafficSection(connectedFixture, 'x');
+    expect(html).toContain('<th style="padding:2px 10px">表示回数</th>');
+  });
+  it('参照元テーブルのヘッダは従来どおり「セッション」', () => {
+    const connectedFixture = { ...base, connected: true, sourceMedium: [{ label: 'google / organic', sessions: 10 }] };
+    const html = renderTrafficSection(connectedFixture, 'x');
+    expect(html).toContain('<th style="padding:2px 10px">セッション</th>');
   });
   it('分類不能な参照元は解説なし（解説用のdivが付かない）', () => {
     const connectedFixture = {

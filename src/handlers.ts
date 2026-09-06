@@ -2,7 +2,7 @@ import type { Env } from './index.js';
 import { createSession, constantEquals } from './auth.js';
 import { loginPage, renderDashboard } from './pages.js';
 import { getHistory } from './data.js';
-import { resolvePeriod, priorPeriod, alignPriorEnd } from './period.js';
+import { resolvePeriod, priorPeriod, alignPriorEnd, type Period } from './period.js';
 import { jstToday, addDaysToYmd } from './util.js';
 import { computeKpi } from './metrics/kpi.js';
 import { computeTrend, priorYearSeries, resolveGranularity } from './metrics/trend.js';
@@ -35,6 +35,8 @@ import { applyOrder, isValidOrder, resolveView, SECTION_ORDER_KEY } from './sect
 const SESSION_TTL = 7 * 24 * 3600;
 // 未来日を today にクランプする（GA4/IG は未来日を要求できないため）
 export function clampEnd(end: string, today: string): string { return end > today ? today : end; }
+// 推移グラフ用に end を endClamped へ差し替えた期間を作る（GA4取得範囲と一致させ、未来日バケットのゼロ埋めを防ぐ）
+export function seriesPeriod(period: Period, endClamped: string): Period { return { ...period, end: endClamped }; }
 const html = (s: string, status = 200) => new Response(s, { status, headers: { 'content-type': 'text/html; charset=utf-8' } });
 const json = (o: unknown, status = 200) =>
   new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json; charset=utf-8' } });
@@ -105,7 +107,8 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
         comparable ? runReport(env, DAILY_SESSIONS_SPEC, prevRange).catch(() => null) : Promise.resolve(null),
       ]);
       const channels = toNameValues(ch), devices = toNameValues(dv), regions = toNameValues(rg), topPages = toNameValues(tp), sourceMedium = toNameValues(sm);
-      const overlay = computeTrafficOverlay(all, period, toDailySessions(ds));
+      const dailySessions = toDailySessions(ds); // 1回だけ計算して以下で再利用する
+      const overlay = computeTrafficOverlay(all, period, dailySessions);
       const prevOverlay = pds ? computeTrafficOverlay(all, prevAligned, toDailySessions(pds)) : null;
 
       // 第2段：参照元/人気ページの上位5件（sessions降順）について日次の推移を取得する（上位0件なら取得しない）
@@ -116,16 +119,19 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
         pageTop.length ? runReport(env, pageSeriesSpec(pageTop), range).catch(() => null) : Promise.resolve(null),
         pageTop.length ? runReport(env, DAILY_PAGEVIEWS_SPEC, range).catch(() => null) : Promise.resolve(null),
       ]);
-      const dailyTotals = toDailySessions(ds).map(d => ({ date: d.date, value: d.sessions }));
-      const sourceSeries = srcRows ? buildSeries(toKeyedDaily(srcRows), period, gran, srcTop, dailyTotals, sourceShortName) : null;
+      // GA4取得範囲（endClamped）と一致させ、未来日バケットがゼロ埋めされないようにする
+      const spPeriod = seriesPeriod(period, endClamped);
+      const dailyTotals = dailySessions.map(d => ({ date: d.date, value: d.sessions }));
+      const emptyToNull = (sd: ReturnType<typeof buildSeries> | null) => sd && sd.buckets.length > 0 ? sd : null;
+      const sourceSeries = srcRows ? emptyToNull(buildSeries(toKeyedDaily(srcRows), spPeriod, gran, srcTop, dailyTotals, sourceShortName)) : null;
       const pageSeries = pageRows
-        ? buildSeries(toKeyedDaily(pageRows), period, gran, pageTop, dailyPv ? toDailySessions(dailyPv).map(d => ({ date: d.date, value: d.sessions })) : null, pageNameJa)
+        ? emptyToNull(buildSeries(toKeyedDaily(pageRows), spPeriod, gran, pageTop, dailyPv ? toDailySessions(dailyPv).map(d => ({ date: d.date, value: d.sessions })) : null, pageNameJa))
         : null;
 
       traffic = { channels, sourceMedium, topPages, devices, regions, overlay, sourceSeries, pageSeries,
         insights: buildGa4Insights({ period, channels, prevChannels: pch ? toNameValues(pch) : null, sourceMedium, prevSourceMedium: psm ? toNameValues(psm) : null, devices, regions, topPages, overlay, prevOverlay, partial }),
         connected: true };
-    } catch { traffic = emptyTraffic; }
+    } catch { traffic = { ...emptyTraffic, unavailable: true }; }
   }
 
   // 表示ビューに関係なく、その日まだ記録が無ければフォロワー数だけ1回取得して記録する（取りこぼし防止）

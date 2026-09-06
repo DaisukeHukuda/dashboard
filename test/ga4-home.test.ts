@@ -27,6 +27,24 @@ describe('home GA4 wiring', () => {
     vi.unstubAllGlobals();
   });
 
+  it('GA4が設定済みだが一時的にレポート取得が失敗した場合は「未接続」ではなく一時的な取得失敗の文言を出す', async () => {
+    const env: Env = {
+      DATA: fakeKV({ 'history:latest': JSON.stringify(history) }), DASH: fakeKV({ 'ga4:token': 'TOK' }),
+      ADMIN_USER: 'admin', ADMIN_PASSWORD: 'pw', SESSION_SECRET: 'secret',
+      GA4_SA_JSON_B64: 'ZHVtbXk=', GA4_PROPERTY_ID: '000000',
+    };
+    const fetchMock = vi.fn(async () => { throw new Error('network down'); });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await worker.fetch(new Request('https://x/?period=last12&view=web', { headers: { cookie: await cookie() } }), env);
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain('GA4のデータを一時的に取得できませんでした');
+    expect(html).not.toContain('GA4は未接続です');
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
   it('B2: 前期3レポートが失敗しても当期の描画は続く（.catchで握る）', async () => {
     const today = jstToday();
     const period = resolvePeriod('last12', today);
