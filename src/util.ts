@@ -23,3 +23,19 @@ export function monthsBetween(a: string, b: string): number {
   const [by, bm] = b.split('-').map(Number);
   return (by - ay) * 12 + (bm - am);
 }
+
+export function isValidYmd(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+
+export function lastDayOfMonth(ym: string): string {
+  const [y, m] = ym.split('-').map(Number);
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate(); // 翌月0日=当月末
+  return `${ym}-${String(last).padStart(2, '0')}`;
+}
+
+export function daysBetweenYmd(a: string, b: string): number {
+  return Math.round((Date.UTC(+b.slice(0, 4), +b.slice(5, 7) - 1, +b.slice(8, 10)) - Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10))) / 86400000);
+}

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { resolvePeriod, priorYear, priorPeriod, inPeriod, filterPeriod } from '../src/period.js';
-import { weekdayOf, monthOf, ymOf, addMonthsToYmd, monthsBetween } from '../src/util.js';
+import { resolvePeriod, priorYear, priorPeriod, inPeriod, filterPeriod, periodQuery, spanDays, comparisonLabel } from '../src/period.js';
+import { weekdayOf, monthOf, ymOf, addMonthsToYmd, monthsBetween, isValidYmd, lastDayOfMonth, daysBetweenYmd } from '../src/util.js';
 
 describe('util', () => {
   it('weekdayOf', () => { expect(weekdayOf('2023-06-10')).toBe(6); }); // 土
@@ -72,5 +72,74 @@ describe('priorPeriod', () => {
     const q = priorPeriod(p);
     expect(q.start).toBe(priorYear(p).start);
     expect(q.end).toBe(priorYear(p).end);
+  });
+});
+
+describe('util date helpers', () => {
+  it('lastDayOfMonth', () => {
+    expect(lastDayOfMonth('2026-02')).toBe('2026-02-28');
+    expect(lastDayOfMonth('2024-02')).toBe('2024-02-29');
+    expect(lastDayOfMonth('2026-08')).toBe('2026-08-31');
+  });
+  it('isValidYmd', () => {
+    expect(isValidYmd('2026-02-30')).toBe(false);
+    expect(isValidYmd('2026-02-28')).toBe(true);
+    expect(isValidYmd('2026-13-01')).toBe(false);
+    expect(isValidYmd('abc')).toBe(false);
+  });
+  it('daysBetweenYmd', () => {
+    expect(daysBetweenYmd('2026-01-01', '2026-01-31')).toBe(30);
+  });
+});
+
+describe('resolvePeriod month/custom', () => {
+  it('YYYY-MM は月初〜月末', () => {
+    const p = resolvePeriod('2026-08', '2026-09-06');
+    expect(p).toEqual({ start: '2026-08-01', end: '2026-08-31', label: '2026年8月', kind: 'month' });
+  });
+  it('不正な月は既定', () => {
+    expect(resolvePeriod('2026-13', '2026-09-06').kind).toBe('last12');
+  });
+  it('custom は from〜to', () => {
+    const p = resolvePeriod('custom', '2026-09-06', '2026-04-01', '2026-06-30');
+    expect(p).toEqual({ start: '2026-04-01', end: '2026-06-30', label: '2026-04-01〜2026-06-30', kind: 'custom' });
+  });
+  it('custom の不正は既定にフォールバック', () => {
+    expect(resolvePeriod('custom', '2026-09-06', '2026-06-30', '2026-04-01').kind).toBe('last12'); // from>to
+    expect(resolvePeriod('custom', '2026-09-06', '2026-02-30', '2026-03-01').kind).toBe('last12'); // 実在しない日
+    expect(resolvePeriod('custom', '2026-09-06', null, '2026-03-01').kind).toBe('last12');        // 欠落
+    expect(resolvePeriod('custom', '2026-09-06', '2026/04/01', '2026-06-30').kind).toBe('last12'); // 形式
+  });
+});
+
+describe('periodQuery / spanDays / comparisonLabel / priorPeriod', () => {
+  it('periodQuery', () => {
+    expect(periodQuery(resolvePeriod('last24', '2026-09-06'))).toEqual({ period: 'last24' });
+    expect(periodQuery(resolvePeriod('2025', '2026-09-06'))).toEqual({ period: '2025' });
+    expect(periodQuery(resolvePeriod('2026-08', '2026-09-06'))).toEqual({ period: '2026-08' });
+    expect(periodQuery(resolvePeriod('custom', '2026-09-06', '2026-04-01', '2026-06-30'))).toEqual({ period: 'custom', from: '2026-04-01', to: '2026-06-30' });
+  });
+  it('spanDays は両端含む', () => {
+    expect(spanDays(resolvePeriod('2026-08', '2026-09-06'))).toBe(31);
+  });
+  it('month は前年同月', () => {
+    const q = priorPeriod(resolvePeriod('2026-08', '2026-09-06'));
+    expect(q.start).toBe('2025-08-01');
+    expect(q.end).toBe('2025-08-31');
+    expect(comparisonLabel(resolvePeriod('2026-08', '2026-09-06'))).toBe('前年同月比');
+  });
+  it('custom ≤366日 は -12ヶ月・>366日 は期間長シフト', () => {
+    const short = resolvePeriod('custom', '2026-09-06', '2026-04-01', '2026-06-30');
+    expect(priorPeriod(short).start).toBe('2025-04-01');
+    expect(priorPeriod(short).end).toBe('2025-06-30');
+    expect(comparisonLabel(short)).toBe('前年同期間比');
+    const long = resolvePeriod('custom', '2026-09-06', '2024-01-01', '2025-12-31'); // 731日
+    expect(priorPeriod(long).end).toBe('2023-12-31');
+    expect(priorPeriod(long).start).toBe('2022-01-01');
+    expect(comparisonLabel(long)).toBe('前期間比');
+  });
+  it('既存 kind のラベル', () => {
+    expect(comparisonLabel(resolvePeriod('last12', '2026-09-06'))).toBe('前年比');
+    expect(comparisonLabel(resolvePeriod('last24', '2026-09-06'))).toBe('前24ヶ月比');
   });
 });
