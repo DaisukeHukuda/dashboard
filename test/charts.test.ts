@@ -33,6 +33,24 @@ describe('renderTrendChart', () => {
     expect(svg).toContain('<polyline');
     expect((svg.match(/<rect/g) ?? []).length).toBeGreaterThanOrEqual(2);
   });
+  it('日次ラベル（YYYY-MM-DD形式を含まない）はそのまま表示される', () => {
+    const svg = renderTrendChart([
+      { bucket: '2026-08-01', label: '8/1', bookings: 1, revenue: 1000 },
+    ]);
+    expect(svg).toContain('>8/1<');
+  });
+  it('月次ラベル 2026-08 は先頭の年を削って 08 と表示される', () => {
+    const svg = renderTrendChart([
+      { bucket: '2026-08', label: '2026-08', bookings: 1, revenue: 1000 },
+    ]);
+    expect(svg).toContain('>08<');
+  });
+  it('週次ラベル 2026-08-10 は先頭の年を削って 08-10 と表示される', () => {
+    const svg = renderTrendChart([
+      { bucket: '2026-08-10', label: '2026-08-10', bookings: 1, revenue: 1000 },
+    ]);
+    expect(svg).toContain('>08-10<');
+  });
 });
 
 describe('renderTrendChart with prior', () => {

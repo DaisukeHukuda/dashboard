@@ -46,7 +46,7 @@ export function renderTrendChart(points: TrendPoint[], prior?: (number | null)[]
   points.forEach((p, i) => {
     if (i % labelEvery !== 0) return;
     const x = left + i * step + step / 2;
-    s += `<text x="${x.toFixed(1)}" y="${H - 8}" font-size="10" fill="#6b7280" text-anchor="middle">${escXml(p.label.slice(5))}</text>`;
+    s += `<text x="${x.toFixed(1)}" y="${H - 8}" font-size="10" fill="#6b7280" text-anchor="middle">${escXml(p.label.replace(/^\d{4}-/, ''))}</text>`;
   });
   return s + svgClose();
 }

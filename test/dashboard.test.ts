@@ -166,6 +166,27 @@ describe('dashboard rendering', () => {
     expect(html).toContain('name="to" value="2026-06-30"');
     expect(html).toContain('前年同期間比');
   });
+  it('期間カードは折返し可能（flex-wrap:wrap）', () => {
+    const html = renderDashboard({ ...base, period: resolvePeriod('last12', '2026-09-06') });
+    expect(html).toMatch(/<div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">/);
+  });
+  it('コースフォームは粒度によらず g を常に引き継ぐ（heatmap）', () => {
+    const heatmapFormOf = (html: string) => {
+      const m = html.match(/<section class="sec" data-sec="heatmap"[\s\S]*?<\/section>/);
+      return m ? m[0] : '';
+    };
+    const monthHtml = heatmapFormOf(renderDashboard({ ...base, period: resolvePeriod('last12', '2026-09-06'), granularity: 'month', view: 'bookings' }));
+    expect(monthHtml).toContain('<input type="hidden" name="g" value="month">');
+    const weekHtml = heatmapFormOf(renderDashboard({ ...base, period: resolvePeriod('2026-08', '2026-09-06'), granularity: 'week', view: 'bookings' }));
+    expect(weekHtml).toContain('<input type="hidden" name="g" value="week">');
+    const dayHtml = heatmapFormOf(renderDashboard({ ...base, period: resolvePeriod('2026-08', '2026-09-06'), granularity: 'day', view: 'bookings' }));
+    expect(dayHtml).toContain('<input type="hidden" name="g" value="day">');
+  });
+  it('月入力に placeholder と pattern がある（Safari/Firefoxのテキスト欄フォールバック対策）', () => {
+    const html = renderDashboard({ ...base, period: resolvePeriod('last12', '2026-09-06') });
+    expect(html).toContain('placeholder="2026-08"');
+    expect(html).toContain('pattern="\\d{4}-\\d{2}"');
+  });
   it('短い期間では日次トグルが出る・長い期間では出ない', () => {
     const short = renderDashboard({ ...base, period: resolvePeriod('2026-08', '2026-09-06'), granularity: 'day' });
     expect(short).toContain('>日次<');

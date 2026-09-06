@@ -27,6 +27,8 @@ import type { IgSeriesPoint, IgPostRow } from './ig/types.js';
 import { applyOrder, isValidOrder, resolveView, SECTION_ORDER_KEY } from './sections.js';
 
 const SESSION_TTL = 7 * 24 * 3600;
+// 未来日を today にクランプする（GA4/IG は未来日を要求できないため）
+export function clampEnd(end: string, today: string): string { return end > today ? today : end; }
 const html = (s: string, status = 200) => new Response(s, { status, headers: { 'content-type': 'text/html; charset=utf-8' } });
 const json = (o: unknown, status = 200) =>
   new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json; charset=utf-8' } });
@@ -57,9 +59,11 @@ export function handleLogout(): Response {
 
 export async function handleHome(url: URL, env: Env, _username: string): Promise<Response> {
   const view = resolveView(url.searchParams.get('view'));
-  const period = resolvePeriod(url.searchParams.get('period'), jstToday(), url.searchParams.get('from'), url.searchParams.get('to'));
+  const today = jstToday();
+  const period = resolvePeriod(url.searchParams.get('period'), today, url.searchParams.get('from'), url.searchParams.get('to'));
   const selectedCourse = url.searchParams.get('course') ?? '';
   const gran = resolveGranularity(url.searchParams.get('g'), period);
+  const endClamped = clampEnd(period.end, today); // GA4/IG には未来日を渡さない
 
   const all = await getHistory(env.DATA);
   const kpi = computeKpi(all, period);
@@ -79,7 +83,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
   if ((view === 'web' || view === 'all') && env.GA4_SA_JSON_B64 && env.GA4_PROPERTY_ID) {
     try {
       await getAccessToken(env);
-      const range = { start: period.start, end: period.end };
+      const range = { start: period.start, end: endClamped };
       const [ch, sm, tp, dv, rg, ds] = await Promise.all([
         runReport(env, CHANNEL_SPEC, range),
         runReport(env, SOURCE_MEDIUM_SPEC, range),
@@ -118,8 +122,8 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
       // リーチは独立して失敗を吸収（失敗しても接続は維持）。期間は<=30日にクランプ（IG insightsの制限）
       let reach: IgSeriesPoint[] = [];
       try {
-        const reachSince = period.start > addDaysToYmd(period.end, -29) ? period.start : addDaysToYmd(period.end, -29);
-        const reachJson = await igGet(env, `${uid}/insights`, { metric: 'reach', period: 'day', since: reachSince, until: period.end });
+        const reachSince = period.start > addDaysToYmd(endClamped, -29) ? period.start : addDaysToYmd(endClamped, -29);
+        const reachJson = await igGet(env, `${uid}/insights`, { metric: 'reach', period: 'day', since: reachSince, until: endClamped });
         reach = parseInsightSeries(reachJson, 'reach');
       } catch { /* reach失敗は無視（他は表示） */ }
 

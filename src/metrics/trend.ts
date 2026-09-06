@@ -1,6 +1,6 @@
 import type { HistoryRecord } from '../types.js';
 import { type Period, filterPeriod, priorYear, spanDays } from '../period.js';
-import { ymOf } from '../util.js';
+import { addDaysToYmd, ymOf } from '../util.js';
 
 export interface TrendPoint { bucket: string; label: string; bookings: number; revenue: number; }
 export type Granularity = 'month' | 'week' | 'day';
@@ -24,6 +24,15 @@ export function computeTrend(all: HistoryRecord[], period: Period, granularity: 
     map.set(bucket, cur);
   }
   const label = (b: string) => granularity === 'day' ? `${Number(b.slice(5, 7))}/${Number(b.slice(8, 10))}` : b;
+  if (granularity === 'day') {
+    // 日次は期間内の全日をバケット化する（予約0の日も0件で出す）
+    const points: TrendPoint[] = [];
+    for (let d = period.start; d <= period.end; d = addDaysToYmd(d, 1)) {
+      const v = map.get(d) ?? { bookings: 0, revenue: 0 };
+      points.push({ bucket: d, label: label(d), bookings: v.bookings, revenue: v.revenue });
+    }
+    return points;
+  }
   return [...map.entries()]
     .sort((a, b) => (a[0] < b[0] ? -1 : 1))
     .map(([bucket, v]) => ({ bucket, label: label(bucket), bookings: v.bookings, revenue: v.revenue }));

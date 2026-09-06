@@ -125,7 +125,7 @@ ${years.map(y => opt(String(y), `${y}年`, cur === String(y))).join('')}
 <details class="period-more"${isSpecial ? ' open' : ''}>
 <summary style="font-size:12px;color:var(--accent);cursor:pointer;margin-top:6px">月・期間を指定</summary>
 <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:13px">
-<form method="get" style="display:flex;gap:6px;align-items:center">${hiddenInputs(common)}<label style="margin:0">月</label><input type="month" name="period" value="${period.kind === 'month' ? period.start.slice(0, 7) : ''}" required><button type="submit">表示</button></form>
+<form method="get" style="display:flex;gap:6px;align-items:center">${hiddenInputs(common)}<label style="margin:0">月</label><input type="month" name="period" value="${period.kind === 'month' ? period.start.slice(0, 7) : ''}" placeholder="2026-08" pattern="\\d{4}-\\d{2}" required><button type="submit">表示</button></form>
 <form method="get" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${hiddenInputs({ ...common, period: 'custom' })}<label style="margin:0">期間</label><input type="date" name="from" value="${period.kind === 'custom' ? period.start : ''}" required>〜<input type="date" name="to" value="${period.kind === 'custom' ? period.end : ''}" required><button type="submit">表示</button></form>
 </div></details>`;
 }
@@ -170,7 +170,7 @@ ${renderTrendChart(d.trend, d.trendPrior)}</div>`,
 <form method="get" style="margin-bottom:8px">
 ${hiddenInputs(periodQuery(d.period))}
 <input type="hidden" name="view" value="${d.view}">
-${d.granularity === 'week' ? '<input type="hidden" name="g" value="week">' : ''}
+<input type="hidden" name="g" value="${d.granularity}">
 <select name="course" onchange="this.form.submit()">${courseOpts}</select>
 </form>${renderHeatmap(d.heatmap)}</div>`,
     cohort: `<div class="card"><h2>リピーター・コホート再訪率（初回月別・全期間）${pnote('全期間')}</h2>${renderCohortGrid(d.cohorts)}</div>`,
@@ -219,7 +219,7 @@ ${navItem('all', 'すべて', '#6b7280')}
 <div class="shell">
 ${sideNav}
 <main>
-<div class="card" style="display:flex;justify-content:space-between;align-items:center">${periodSelect(d.period, d.view, d.selectedCourse, d.granularity)}<span style="font-size:12px;color:var(--muted)">${esc(d.period.label)}</span></div>
+<div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">${periodSelect(d.period, d.view, d.selectedCourse, d.granularity)}<span style="font-size:12px;color:var(--muted)">${esc(d.period.label)}</span></div>
 ${reorderBar}
 
 ${orderedSections}
