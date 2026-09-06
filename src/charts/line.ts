@@ -1,5 +1,6 @@
 import type { TrendPoint } from '../metrics/trend.js';
 import { svgOpen, svgClose, escXml, scaleY } from './svg.js';
+import { axisLabels } from './axis.js';
 
 export function renderTrendChart(points: TrendPoint[], prior?: (number | null)[]): string {
   const W = 720, H = 240, top = 20, bottom = 40, left = 8, right = 8;
@@ -43,20 +44,11 @@ export function renderTrendChart(points: TrendPoint[], prior?: (number | null)[]
   }
   // x 軸ラベル（間引き）
   const labelEvery = Math.ceil(n / 12) || 1;
-  let lastYear = '';
-  points.forEach((p, i) => {
-    if (i % labelEvery !== 0) return;
+  const labels = axisLabels(points, labelEvery);
+  labels.forEach((t, i) => {
+    if (t === null) return;
     const x = left + i * step + step / 2;
-    let text = p.label;
-    const iso = /^(\d{4})-(\d{2})(?:-(\d{2}))?$/.exec(p.bucket);
-    if (iso && p.label === p.bucket) {
-      const [, y, m, d] = iso;
-      const showYear = y !== lastYear;
-      const md = d ? `${Number(m)}/${Number(d)}` : `${Number(m)}`;
-      text = showYear ? `${y}/${md}` : md;
-      lastYear = y;
-    }
-    s += `<text x="${x.toFixed(1)}" y="${H - 8}" font-size="10" fill="#6b7280" text-anchor="middle">${escXml(text)}</text>`;
+    s += `<text x="${x.toFixed(1)}" y="${H - 8}" font-size="10" fill="#6b7280" text-anchor="middle">${escXml(t)}</text>`;
   });
   return s + svgClose();
 }

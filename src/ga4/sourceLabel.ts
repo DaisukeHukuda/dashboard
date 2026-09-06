@@ -50,3 +50,17 @@ export function describeSourceMedium(label: string): string {
   if (!medium) return `${source} からの流入`;
   return '';
 }
+
+export function sourceShortName(label: string): string {
+  const [rawSource = '', rawMedium = ''] = label.split(' / ');
+  const source = rawSource.trim(); const medium = rawMedium.trim().toLowerCase(); const s = source.toLowerCase();
+  if (s === '(not set)') return '不明';
+  if (s === '(direct)' || medium === '(none)') return '直接アクセス';
+  const engine = Object.hasOwn(SEARCH_ENGINES, s) ? SEARCH_ENGINES[s] : null;
+  if (medium === 'organic') return `${engine ?? source}検索`;
+  if (medium === 'cpc' || medium === 'ppc' || medium.startsWith('paid')) return `${engine ?? source}広告`;
+  const sns = SNS.find(k => k.match.test(s)); if (sns) return sns.name;
+  const site = KNOWN_SITES.find(k => k.match.test(s)); if (site) return site.name.replace(/（.*）$/, '');
+  if (medium === 'referral') return source;
+  return label;
+}

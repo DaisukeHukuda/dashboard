@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { describeSourceMedium, isInstagramSource, isAsoviewSource } from '../src/ga4/sourceLabel.js';
+import { describeSourceMedium, isInstagramSource, isAsoviewSource, sourceShortName } from '../src/ga4/sourceLabel.js';
 
 describe('describeSourceMedium', () => {
   const cases: [string, string][] = [
@@ -29,6 +29,15 @@ describe('describeSourceMedium', () => {
   for (const [input, expected] of cases) {
     it(`${input} → ${expected}`, () => { expect(describeSourceMedium(input)).toBe(expected); });
   }
+});
+
+describe('sourceShortName', () => {
+  const cases: [string, string][] = [
+    ['google / organic', 'Google検索'], ['yahoo / organic', 'Yahoo!検索'], ['(direct) / (none)', '直接アクセス'],
+    ['l.instagram.com / referral', 'Instagram'], ['m.facebook.com / referral', 'Facebook'], ['asoview.com / referral', 'アソビュー'],
+    ['example.jp / referral', 'example.jp'], ['google / cpc', 'Google広告'], ['(not set)', '不明'], ['foo / bar', 'foo / bar'],
+  ];
+  for (const [i, o] of cases) it(`${i} → ${o}`, () => expect(sourceShortName(i)).toBe(o));
 });
 
 describe('isInstagramSource / isAsoviewSource', () => {
