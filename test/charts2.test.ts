@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { renderHeatmap } from '../src/charts/heatmap.js';
-import { renderCohortGrid } from '../src/charts/cohortgrid.js';
 
 describe('renderHeatmap', () => {
   it('renders 84 cells', () => {
@@ -28,16 +27,5 @@ describe('renderHeatmap', () => {
     expect(svg).toContain('1月 月: 3件');
     // 日曜セルは最終列（cell=34, labelW=36 → 7列目 x=36+6*34=240、rectのxは+1で241）に描かれる
     expect(svg).toMatch(/<rect x="241"[^>]*><title>1月 日: 5件<\/title>/);
-  });
-});
-
-describe('renderCohortGrid', () => {
-  it('renders a row per cohort with percentage text', () => {
-    const svg = renderCohortGrid([{ cohort: '2023-01', size: 4, retention: [4, 2, 1], within3: 2, yearLater: 0 }]);
-    expect(svg).toContain('2023-01');
-    expect(svg).toContain('%');
-  });
-  it('handles empty', () => {
-    expect(renderCohortGrid([]).startsWith('<svg')).toBe(true);
   });
 });

@@ -63,11 +63,21 @@ main{flex:1;min-width:0}
 section[data-media="booking"] .card{border-left:4px solid var(--m-booking)}
 section[data-media="web"] .card{border-left:4px solid var(--m-web)}
 section[data-media="sns"] .card{border-left:4px solid var(--m-sns)}
+.cohort-wrap{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.cohort{border-collapse:separate;border-spacing:0;font-size:11px;min-width:100%}
+.cohort th,.cohort td{padding:4px 6px;text-align:center;white-space:nowrap}
+.cohort thead th{position:sticky;top:0;background:#fff;z-index:2;color:var(--muted);font-weight:400;border-bottom:1px solid var(--line)}
+.cohort tbody th{position:sticky;left:0;background:#fff;z-index:1;text-align:left;font-weight:400;border-right:1px solid var(--line)}
+.cohort thead th:first-child{left:0;z-index:3}
+.cohort-sp{display:none}
+.cohort-wrap.cohort-sp{max-height:360px}
 @media(max-width:899px){
 .shell{display:block}
 .side{display:flex;width:auto;position:sticky;top:0;z-index:15;background:var(--bg);overflow-x:auto;padding:8px;gap:4px;border-bottom:1px solid var(--line)}
 .side a{white-space:nowrap;min-height:40px;padding:8px 10px}
 body.reorder #reorderBar{top:56px}
+.cohort-pc{display:none}
+.cohort-sp{display:block}
 }
 </style></head><body>${body}</body></html>`;
 }
@@ -106,6 +116,7 @@ export interface DashboardData {
   social: SocialData;
   sectionOrder: SectionId[];
   view: ViewId;
+  todayYm: string;
 }
 
 const hiddenInputs = (obj: Record<string, string>) => Object.entries(obj).map(([k, v]) => `<input type="hidden" name="${k}" value="${esc(v)}">`).join('');
@@ -178,7 +189,9 @@ ${hiddenInputs(periodQuery(d.period))}
 <input type="hidden" name="g" value="${d.granularity}">
 <select name="course" onchange="this.form.submit()">${courseOpts}</select>
 </form>${renderHeatmap(d.heatmap)}</div>`,
-    cohort: `<div class="card"><h2>リピーター・コホート再訪率（初回月別・全期間）${pnote('全期間')}</h2>${renderCohortGrid(d.cohorts)}</div>`,
+    cohort: `<div class="card"><h2>リピーター・コホート再訪率（初回月別・全期間）${pnote('全期間')}</h2>
+<div style="font-size:13px;color:var(--muted);margin:0 0 8px">行=初めて参加した月、列=その何ヶ月後に再び参加した割合。灰色は未来。スマホでは要約（3ヶ月以内／1年後の再訪率）を表示</div>
+${renderCohortGrid(d.cohorts, d.todayYm)}</div>`,
     course: `<div class="card"><h2>コース別内訳${pnote(range)}</h2>${renderCourseBars(d.courseRows)}</div>`,
     source: `<div class="card"><h2>流入経路（お客様の自己申告）${pnote(range)}</h2>
 <p style="font-size:12px;color:var(--muted);margin:0 0 8px">予約時アンケート「ご予約の経緯」を分類したもの。sync 更新前の履歴は「不明」と表示されます。</p>

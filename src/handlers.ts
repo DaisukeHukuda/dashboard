@@ -3,7 +3,7 @@ import { createSession, constantEquals } from './auth.js';
 import { loginPage, renderDashboard } from './pages.js';
 import { getHistory } from './data.js';
 import { resolvePeriod, priorPeriod, alignPriorEnd, type Period } from './period.js';
-import { jstToday, addDaysToYmd } from './util.js';
+import { jstToday, addDaysToYmd, ymOf } from './util.js';
 import { computeKpi } from './metrics/kpi.js';
 import { computeTrend, priorYearSeries, resolveGranularity } from './metrics/trend.js';
 import { computeHeatmap, courseList } from './metrics/heatmap.js';
@@ -188,6 +188,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
 
   return html(renderDashboard({
     period, kpi, trend, heatmap, courses, selectedCourse, cohorts, courseRows, sourceRows, insights, granularity: gran, trendPrior, traffic, social, sectionOrder, view,
+    todayYm: ymOf(today),
   }));
 }
 

@@ -44,6 +44,7 @@ const base: DashboardData = {
   social: { followers: [], reach: [], posts: [], overlay: [], insights: [], connected: false },
   sectionOrder: DEFAULT_ORDER,
   view: 'all' as const,
+  todayYm: '2026-09',
 };
 
 describe('dashboard rendering', () => {
@@ -110,6 +111,12 @@ describe('dashboard rendering', () => {
     expect(html).toContain('class="p-note"');
     expect(html).toContain('対象: 2025-09-06〜2026-09-05'); // KPI等の期間連動ブロック
     expect(html).toContain('対象: 全期間'); // コホート
+  });
+
+  it('コホートカードはPC表とスマホ要約表の両方を含む', () => {
+    const html = renderDashboard({ ...base, cohorts: [{ cohort: '2024-01', size: 10, retention: Array(13).fill(5), within3: 4, yearLater: 2 }] });
+    expect(html).toContain('cohort-pc');
+    expect(html).toContain('cohort-sp');
   });
 
   it('bookingsビューは7ブロックのみ・並び替えUIなし', () => {
