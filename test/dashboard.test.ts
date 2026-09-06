@@ -40,7 +40,7 @@ const base: DashboardData = {
   insights: [],
   granularity: 'month',
   trendPrior: [],
-  traffic: { channels: [], sourceMedium: [], topPages: [], devices: [], regions: [], overlay: [], insights: [], connected: false },
+  traffic: { channels: [], sourceMedium: [], topPages: [], devices: [], regions: [], overlay: [], insights: [], connected: false, sourceSeries: null, pageSeries: null },
   social: { followers: [], reach: [], posts: [], overlay: [], insights: [], connected: false },
   sectionOrder: DEFAULT_ORDER,
   view: 'all' as const,

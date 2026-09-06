@@ -5,12 +5,15 @@ import type { InsightGroup } from '../metrics/insights.js';
 import { esc, renderInsightGroups } from '../pages.js';
 import { renderDonut } from '../charts/donut.js';
 import { renderTrendChart } from '../charts/line.js';
+import { renderMultiLine } from '../charts/multiline.js';
+import type { SeriesData } from '../metrics/series.js';
 import { describeSourceMedium } from './sourceLabel.js';
 
 export interface TrafficData {
   channels: NameValue[]; sourceMedium: NameValue[]; topPages: NameValue[];
   devices: NameValue[]; regions: NameValue[]; overlay: TrafficPoint[];
   insights: InsightGroup[]; connected: boolean;
+  sourceSeries: SeriesData | null; pageSeries: SeriesData | null;
 }
 
 function nvTable(rows: NameValue[], head: string, describe?: (label: string) => string): string {
@@ -22,7 +25,10 @@ function nvTable(rows: NameValue[], head: string, describe?: (label: string) => 
   return `<table style="font-size:13px;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:2px 10px">${esc(head)}</th><th style="padding:2px 10px">セッション</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 
-export function renderTrafficSection(d: TrafficData, periodNote: string): string {
+const seriesBlock = (sd: SeriesData | null, granLabel: string): string =>
+  sd ? `<p style="font-size:11px;color:var(--muted);margin:0 0 4px">上位5件＋その他・${esc(granLabel)}の推移</p>${renderMultiLine(sd)}` : '';
+
+export function renderTrafficSection(d: TrafficData, periodNote: string, granLabel = '月次'): string {
   if (!d.connected) {
     return `<div class="card"><h2>Web流入（GA4）</h2><p style="font-size:13px;color:var(--muted)">GA4は未接続です。プロパティ312598868の閲覧権限とSecret設定後に表示されます。</p></div>`;
   }
@@ -40,7 +46,7 @@ ${renderTrendChart(trend)}</div>`;
   return `<div class="card"><h2>Web流入（GA4）インサイト<span class="p-note">対象: ${periodNote}</span></h2>${insights}</div>
 <div class="card"><h2>流入チャネル構成</h2>${renderDonut(d.channels)}</div>
 ${overlayCard}
-<div class="card"><h2>参照元/メディア Top</h2>${nvTable(d.sourceMedium, '参照元/メディア', describeSourceMedium)}</div>
-<div class="card"><h2>人気ページ Top</h2>${nvTable(d.topPages, 'ページ')}</div>
+<div class="card"><h2>参照元/メディア Top</h2>${seriesBlock(d.sourceSeries, granLabel)}${nvTable(d.sourceMedium, '参照元/メディア', describeSourceMedium)}</div>
+<div class="card"><h2>人気ページ Top</h2>${seriesBlock(d.pageSeries, granLabel)}${nvTable(d.topPages, 'ページ')}</div>
 <div class="card"><h2>デバイス・地域</h2><div style="display:flex;gap:24px;flex-wrap:wrap">${nvTable(d.devices, 'デバイス')}${nvTable(d.regions, '地域')}</div></div>`;
 }

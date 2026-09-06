@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderTrafficSection } from '../src/ga4/section.js';
 
-const base = { channels: [], sourceMedium: [], topPages: [], devices: [], regions: [], overlay: [], insights: [] };
+const base = { channels: [], sourceMedium: [], topPages: [], devices: [], regions: [], overlay: [], insights: [], sourceSeries: null, pageSeries: null };
 
 describe('renderTrafficSection', () => {
   it('shows a not-connected notice when connected=false', () => {
@@ -42,6 +42,19 @@ describe('renderTrafficSection', () => {
     const html = renderTrafficSection(connectedFixture, '2025-09-06〜2026-09-05');
     const occurrences = html.split('Google検索の検索結果から').length - 1;
     expect(occurrences).toBe(1);
+  });
+  it('sourceSeries/pageSeries があれば表の上に推移グラフ、null なら表のみ', () => {
+    const connectedFixture = {
+      ...base, connected: true,
+      sourceMedium: [{ label: 'google / organic', sessions: 10 }],
+      topPages: [{ label: '/tour', sessions: 20 }],
+    };
+    const series = { buckets: ['2026-05', '2026-06'], series: [{ name: 'Google検索', values: [10, 12] }] };
+    const withS = renderTrafficSection({ ...connectedFixture, sourceSeries: series, pageSeries: series }, 'x');
+    expect((withS.match(/<polyline/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    expect(withS).toContain('上位5件＋その他');
+    const noS = renderTrafficSection({ ...connectedFixture, sourceSeries: null, pageSeries: null }, 'x');
+    expect(noS).not.toContain('<polyline');
   });
   it('分類不能な参照元は解説なし（解説用のdivが付かない）', () => {
     const connectedFixture = {

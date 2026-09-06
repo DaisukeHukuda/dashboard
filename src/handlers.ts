@@ -13,10 +13,16 @@ import { computeSourceBreakdown } from './metrics/source.js';
 import { buildInsights } from './metrics/insights.js';
 import { runReport } from './ga4/client.js';
 import { getAccessToken } from './ga4/auth.js';
-import { CHANNEL_SPEC, SOURCE_MEDIUM_SPEC, TOP_PAGES_SPEC, DEVICE_SPEC, REGION_SPEC, DAILY_SESSIONS_SPEC, toNameValues, toDailySessions } from './ga4/reports.js';
+import {
+  CHANNEL_SPEC, SOURCE_MEDIUM_SPEC, TOP_PAGES_SPEC, DEVICE_SPEC, REGION_SPEC, DAILY_SESSIONS_SPEC, DAILY_PAGEVIEWS_SPEC,
+  toNameValues, toDailySessions, sourceSeriesSpec, pageSeriesSpec, toKeyedDaily, type NameValue,
+} from './ga4/reports.js';
 import { computeTrafficOverlay } from './metrics/traffic.js';
 import { buildGa4Insights } from './ga4/insights.js';
 import type { TrafficData } from './ga4/section.js';
+import { buildSeries } from './metrics/series.js';
+import { sourceShortName } from './ga4/sourceLabel.js';
+import { pageNameJa } from './ga4/labels.js';
 import { igGet } from './ig/client.js';
 import { parseInsightSeries, parseMediaList, parseMediaInsights, buildPostRows } from './ig/reports.js';
 import { recordFollowerSnapshot, getFollowerSeries, ensureFollowerSnapshot } from './ig/followers.js';
@@ -78,7 +84,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
   const insights = buildInsights({ all, period, kpi, heatmap, trend, courseRows, sourceRows });
 
   // GA4 未設定/失敗時は Phase 1 を退行させず未接続表示にフォールバック
-  const emptyTraffic: TrafficData = { channels: [], sourceMedium: [], topPages: [], devices: [], regions: [], overlay: [], insights: [], connected: false };
+  const emptyTraffic: TrafficData = { channels: [], sourceMedium: [], topPages: [], devices: [], regions: [], overlay: [], insights: [], connected: false, sourceSeries: null, pageSeries: null };
   let traffic: TrafficData = emptyTraffic;
   if ((view === 'web' || view === 'all') && env.GA4_SA_JSON_B64 && env.GA4_PROPERTY_ID) {
     try {
@@ -101,7 +107,22 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
       const channels = toNameValues(ch), devices = toNameValues(dv), regions = toNameValues(rg), topPages = toNameValues(tp), sourceMedium = toNameValues(sm);
       const overlay = computeTrafficOverlay(all, period, toDailySessions(ds));
       const prevOverlay = pds ? computeTrafficOverlay(all, prevAligned, toDailySessions(pds)) : null;
-      traffic = { channels, sourceMedium, topPages, devices, regions, overlay,
+
+      // 第2段：参照元/人気ページの上位5件（sessions降順）について日次の推移を取得する（上位0件なら取得しない）
+      const top5 = (rows: NameValue[]) => [...rows].sort((a, b) => b.sessions - a.sessions).slice(0, 5).map(r => r.label);
+      const srcTop = top5(sourceMedium), pageTop = top5(topPages);
+      const [srcRows, pageRows, dailyPv] = await Promise.all([
+        srcTop.length ? runReport(env, sourceSeriesSpec(srcTop), range).catch(() => null) : Promise.resolve(null),
+        pageTop.length ? runReport(env, pageSeriesSpec(pageTop), range).catch(() => null) : Promise.resolve(null),
+        pageTop.length ? runReport(env, DAILY_PAGEVIEWS_SPEC, range).catch(() => null) : Promise.resolve(null),
+      ]);
+      const dailyTotals = toDailySessions(ds).map(d => ({ date: d.date, value: d.sessions }));
+      const sourceSeries = srcRows ? buildSeries(toKeyedDaily(srcRows), period, gran, srcTop, dailyTotals, sourceShortName) : null;
+      const pageSeries = pageRows
+        ? buildSeries(toKeyedDaily(pageRows), period, gran, pageTop, dailyPv ? toDailySessions(dailyPv).map(d => ({ date: d.date, value: d.sessions })) : null, pageNameJa)
+        : null;
+
+      traffic = { channels, sourceMedium, topPages, devices, regions, overlay, sourceSeries, pageSeries,
         insights: buildGa4Insights({ period, channels, prevChannels: pch ? toNameValues(pch) : null, sourceMedium, prevSourceMedium: psm ? toNameValues(psm) : null, devices, regions, topPages, overlay, prevOverlay, partial }),
         connected: true };
     } catch { traffic = emptyTraffic; }

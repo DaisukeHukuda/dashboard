@@ -182,7 +182,7 @@ ${hiddenInputs(periodQuery(d.period))}
     source: `<div class="card"><h2>流入経路（お客様の自己申告）${pnote(range)}</h2>
 <p style="font-size:12px;color:var(--muted);margin:0 0 8px">予約時アンケート「ご予約の経緯」を分類したもの。sync 更新前の履歴は「不明」と表示されます。</p>
 ${renderCourseBars(d.sourceRows)}</div>`,
-    ga4: renderTrafficSection(d.traffic, range),
+    ga4: renderTrafficSection(d.traffic, range, gLabels[d.granularity]),
     ig: renderSocialSection(d.social, range),
   };
   const secTools = d.view === 'all'

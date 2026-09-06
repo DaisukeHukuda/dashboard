@@ -48,7 +48,8 @@ describe('home GA4 wiring', () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('自然検索'); // 当期のチャネルは描画される（前期失敗が伝播しない）
-    expect(fetchMock).toHaveBeenCalledTimes(9); // 当期6＋前期3（失敗込み）
+    // 当期6＋前期3（失敗込み）＋第2段3（sourceMedium/topPagesが1件ずつあるため上位5件推移＋日次PVを取得）
+    expect(fetchMock).toHaveBeenCalledTimes(12);
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -64,7 +65,63 @@ describe('home GA4 wiring', () => {
 
     const res = await worker.fetch(new Request('https://x/?period=all&view=web', { headers: { cookie: await cookie() } }), env);
     expect(res.status).toBe(200);
+    // sourceMedium/topPages が空 → 上位0件のため第2段(sourceSeries/pageSeries/dailyPageviews)は取得しない
     expect(fetchMock).toHaveBeenCalledTimes(6);
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('接続時：上位5件があれば第2段でdimensionFilter付きの推移を取得する（sessions降順）', async () => {
+    const env: Env = {
+      DATA: fakeKV({ 'history:latest': JSON.stringify(history) }), DASH: fakeKV({ 'ga4:token': 'TOK' }),
+      ADMIN_USER: 'admin', ADMIN_PASSWORD: 'pw', SESSION_SECRET: 'secret',
+      GA4_SA_JSON_B64: 'ZHVtbXk=', GA4_PROPERTY_ID: '000000',
+    };
+    let capturedSourceFilterValues: string[] | null = null;
+    let capturedPageFilterValues: string[] | null = null;
+    let dailyPageviewsCalled = false;
+    const fetchMock = vi.fn(async (_url: string, init: { body: string }) => {
+      const body = JSON.parse(init.body) as {
+        dimensions: { name: string }[]; metrics: { name: string }[];
+        dimensionFilter?: { filter: { fieldName: string; inListFilter: { values: string[] } } };
+      };
+      const dims = body.dimensions.map(d => d.name).join(',');
+      const mets = body.metrics.map(m => m.name).join(',');
+      if (dims === 'sessionSourceMedium') {
+        return {
+          ok: true, json: async () => ({
+            rows: [
+              { dimensionValues: [{ value: 'a / a' }], metricValues: [{ value: '50' }] },
+              { dimensionValues: [{ value: 'b / b' }], metricValues: [{ value: '40' }] },
+              { dimensionValues: [{ value: 'c / c' }], metricValues: [{ value: '30' }] },
+              { dimensionValues: [{ value: 'd / d' }], metricValues: [{ value: '20' }] },
+              { dimensionValues: [{ value: 'e / e' }], metricValues: [{ value: '10' }] },
+              { dimensionValues: [{ value: 'f / f' }], metricValues: [{ value: '5' }] },
+            ],
+          }),
+        };
+      }
+      if (dims === 'pagePath') {
+        return { ok: true, json: async () => ({ rows: [{ dimensionValues: [{ value: '/tour' }], metricValues: [{ value: '20' }] }] }) };
+      }
+      if (dims === 'date,sessionSourceMedium' && body.dimensionFilter) {
+        capturedSourceFilterValues = body.dimensionFilter.filter.inListFilter.values;
+        return { ok: true, json: async () => ({ rows: [] }) };
+      }
+      if (dims === 'date,pagePath' && body.dimensionFilter) {
+        capturedPageFilterValues = body.dimensionFilter.filter.inListFilter.values;
+        return { ok: true, json: async () => ({ rows: [] }) };
+      }
+      if (dims === 'date' && mets === 'screenPageViews') { dailyPageviewsCalled = true; }
+      return { ok: true, json: async () => ({ rows: [] }) };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await worker.fetch(new Request('https://x/?period=all&view=web', { headers: { cookie: await cookie() } }), env);
+    expect(res.status).toBe(200);
+    expect(capturedSourceFilterValues).toEqual(['a / a', 'b / b', 'c / c', 'd / d', 'e / e']); // 上位5件・sessions降順
+    expect(capturedPageFilterValues).toEqual(['/tour']);
+    expect(dailyPageviewsCalled).toBe(true);
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
