@@ -47,7 +47,7 @@ describe('buildGa4Insights', () => {
   });
   it('訪問→参加: 訪問100件あたり参加と改善hint', () => {
     const t = text(buildGa4Insights(base), '訪問→参加');
-    expect(t).toContain('訪問100件あたり参加 2.5件（前期 1.7件）');
+    expect(t).toContain('訪問100件あたり参加 2.5件（前期 1.7件）（参加日ベース・GA4計測月のみ）');
     expect(t).toContain('→ 訪問から参加への転換が改善');
   });
   it('デバイス・地域', () => {
@@ -66,6 +66,15 @@ describe('buildGa4Insights', () => {
     expect(t).not.toContain('前年比');
     expect(t).not.toContain('最も伸びた月');
     expect(text(g, 'チャネル構成')).not.toContain('前期');
+  });
+  it('partial: true なら期間途中の注記が付く', () => {
+    const g = buildGa4Insights({ ...base, partial: true });
+    const t = text(g, '訪問の勢い');
+    expect(t).toContain('サイト訪問 600（前年比 +100%・期間途中で同日数比較）');
+  });
+  it('partial: false（既定）なら注記は付かない', () => {
+    const t = text(buildGa4Insights(base), '訪問の勢い');
+    expect(t).not.toContain('期間途中で同日数比較');
   });
   it('last24 では月別YoYを省略するが前期比は出す', () => {
     const g = buildGa4Insights({ ...base, period: resolvePeriod('last24', '2026-09-06') });

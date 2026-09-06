@@ -67,6 +67,14 @@ export function comparisonLabel(p: Period): string {
   return '前年比';
 }
 
+// 当期が期間途中（endが今日でクランプ）なら、前期も同じ経過日数で終端を切る
+export function alignPriorEnd(period: Period, prev: Period, endClamped: string): string {
+  if (endClamped >= period.end) return prev.end;
+  const elapsed = daysBetweenYmd(period.start, endClamped);
+  const cut = addDaysToYmd(prev.start, elapsed);
+  return cut < prev.end ? cut : prev.end;
+}
+
 export function inPeriod(ymd: string, p: Period): boolean {
   return ymd >= p.start && ymd <= p.end;
 }

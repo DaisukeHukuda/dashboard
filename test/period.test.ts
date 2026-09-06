@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolvePeriod, priorYear, priorPeriod, inPeriod, filterPeriod, periodQuery, spanDays, comparisonLabel } from '../src/period.js';
+import { resolvePeriod, priorYear, priorPeriod, inPeriod, filterPeriod, periodQuery, spanDays, comparisonLabel, alignPriorEnd } from '../src/period.js';
 import { weekdayOf, monthOf, ymOf, addMonthsToYmd, monthsBetween, isValidYmd, lastDayOfMonth, daysBetweenYmd } from '../src/util.js';
 
 describe('util', () => {
@@ -141,6 +141,20 @@ describe('periodQuery / spanDays / comparisonLabel / priorPeriod', () => {
   it('既存 kind のラベル', () => {
     expect(comparisonLabel(resolvePeriod('last12', '2026-09-06'))).toBe('前年比');
     expect(comparisonLabel(resolvePeriod('last24', '2026-09-06'))).toBe('前24ヶ月比');
+  });
+});
+
+describe('alignPriorEnd', () => {
+  it('当期が期間途中（endClampedがperiod.endより前）なら、前期も同じ経過日数で終端を切る', () => {
+    const period = resolvePeriod('2026', '2026-09-06'); // 2026-01-01〜2026-12-31（今日でクランプされる）
+    const prev = priorPeriod(period); // 2025-01-01〜2025-12-31
+    const endClamped = '2026-09-06'; // 248日経過
+    expect(alignPriorEnd(period, prev, endClamped)).toBe('2025-09-06');
+  });
+  it('当期が完了していれば（endClamped===period.end）前期は prev.end のまま', () => {
+    const period = resolvePeriod('2025', '2026-09-06'); // 過去の期間・クランプなし
+    const prev = priorPeriod(period);
+    expect(alignPriorEnd(period, prev, period.end)).toBe(prev.end);
   });
 });
 

@@ -16,6 +16,15 @@ const KNOWN_SITES: { match: RegExp; name: string }[] = [
   { match: /(^|\.)tripadvisor\.[a-z.]+$/, name: 'トリップアドバイザー' },
 ];
 
+// GA4 の sessionSourceMedium ラベル（例 "l.instagram.com / referral"）が Instagram / アソビュー経由かどうかの判定。
+// insights.ts の集計（チャネル横断のシェア計算）と sourceLabel の分類、両方から使う共通ロジック。
+export function isInstagramSource(label: string): boolean {
+  return /(^|\.)instagram\.com\b|^instagram\b/i.test(label.split(' / ')[0].trim());
+}
+export function isAsoviewSource(label: string): boolean {
+  return /(^|\.)asoview\.com\b/i.test(label.split(' / ')[0].trim());
+}
+
 export function describeSourceMedium(label: string): string {
   const [rawSource = '', rawMedium = ''] = label.split(' / ');
   const source = rawSource.trim();

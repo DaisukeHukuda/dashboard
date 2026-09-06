@@ -4,6 +4,7 @@ import { summarizeOverlay } from '../metrics/traffic.js';
 import type { InsightGroup, InsightItem } from '../metrics/insights.js';
 import { type Period, comparisonLabel, spanDays } from '../period.js';
 import { channelNameJa, regionNameJa, pageNameJa } from './labels.js';
+import { isInstagramSource, isAsoviewSource } from './sourceLabel.js';
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const signedPct = (ratio: number) => { const d = Math.round((ratio - 1) * 100); return d === 0 ? '±0%' : `${d > 0 ? '+' : ''}${d}%`; };
@@ -11,12 +12,10 @@ const signedPt = (d: number) => { const r = Math.round(d); return r === 0 ? '±0
 const jaMonth = (ym: string) => `${Number(ym.slice(0, 4))}年${Number(ym.slice(5, 7))}月`;
 const sum = (rows: NameValue[]) => rows.reduce((a, r) => a + r.sessions, 0);
 const share = (rows: NameValue[], pred: (label: string) => boolean) => { const t = sum(rows); return t > 0 ? rows.filter(r => pred(r.label)).reduce((a, r) => a + r.sessions, 0) / t : 0; };
-const isIg = (l: string) => /(^|\.)instagram\.com\b|^instagram\b/i.test(l.split(' / ')[0].trim());
-const isAsoview = (l: string) => /(^|\.)asoview\.com\b/i.test(l.split(' / ')[0].trim());
 const ch = (l: string, ...names: string[]) => names.includes(channelNameJa(l));
 
-export function buildGa4Insights(input: { period: Period; channels: NameValue[]; prevChannels: NameValue[] | null; sourceMedium: NameValue[]; prevSourceMedium: NameValue[] | null; devices: NameValue[]; regions: NameValue[]; topPages: NameValue[]; overlay: TrafficPoint[]; prevOverlay: TrafficPoint[] | null }): InsightGroup[] {
-  const { period, channels, prevChannels, sourceMedium, prevSourceMedium, devices, regions, topPages, overlay, prevOverlay } = input;
+export function buildGa4Insights(input: { period: Period; channels: NameValue[]; prevChannels: NameValue[] | null; sourceMedium: NameValue[]; prevSourceMedium: NameValue[] | null; devices: NameValue[]; regions: NameValue[]; topPages: NameValue[]; overlay: TrafficPoint[]; prevOverlay: TrafficPoint[] | null; partial?: boolean }): InsightGroup[] {
+  const { period, channels, prevChannels, sourceMedium, prevSourceMedium, devices, regions, topPages, overlay, prevOverlay, partial = false } = input;
   const cmp = comparisonLabel(period);
   const groups: InsightGroup[] = [];
   const cur = summarizeOverlay(overlay); const prev = prevOverlay ? summarizeOverlay(prevOverlay) : null;
@@ -26,7 +25,7 @@ export function buildGa4Insights(input: { period: Period; channels: NameValue[];
   { const items: InsightItem[] = [];
     if (cur.sessions > 0) {
       const ratio = prev && prev.sessions > 0 ? cur.sessions / prev.sessions : null;
-      items.push({ text: `サイト訪問 ${cur.sessions.toLocaleString('ja-JP')}${ratio !== null ? `（${cmp} ${signedPct(ratio)}）` : ''}`,
+      items.push({ text: `サイト訪問 ${cur.sessions.toLocaleString('ja-JP')}${ratio !== null ? `（${cmp} ${signedPct(ratio)}${partial ? '・期間途中で同日数比較' : ''}）` : ''}`,
         hint: ratio === null ? undefined : ratio >= 1.1 ? '→ 集客は拡大傾向' : ratio <= 0.9 ? '→ 集客は縮小傾向' : undefined });
       if (prevOverlay && !skipMonthly && overlay.length >= 3) {
         const pm = new Map(prevOverlay.map(p => [p.bucket, p.sessions]));
@@ -50,7 +49,7 @@ export function buildGa4Insights(input: { period: Period; channels: NameValue[];
 
   // 3. 参照元
   { if (sum(sourceMedium) > 0) { const items: InsightItem[] = [];
-      const ig = share(sourceMedium, isIg); const prevIg = prevSourceMedium && sum(prevSourceMedium) > 0 ? share(prevSourceMedium, isIg) : null; const aso = share(sourceMedium, isAsoview);
+      const ig = share(sourceMedium, isInstagramSource); const prevIg = prevSourceMedium && sum(prevSourceMedium) > 0 ? share(prevSourceMedium, isInstagramSource) : null; const aso = share(sourceMedium, isAsoviewSource);
       const dPt = prevIg !== null ? (ig - prevIg) * 100 : null;
       items.push({ text: `Instagram経由の訪問 ${pct(ig)}${prevIg !== null ? `（前期 ${pct(prevIg)}）` : ''}・アソビュー経由 ${pct(aso)}`,
         hint: dPt !== null && dPt >= 3 ? '→ Instagramが集客に効き始めている' : dPt !== null && dPt <= -3 ? '→ Instagram経由の訪問が減っている' : undefined });
@@ -59,7 +58,7 @@ export function buildGa4Insights(input: { period: Period; channels: NameValue[];
   // 4. 訪問→参加
   { if (cur.per100 !== null) { const f = (v: number) => v.toFixed(1);
       const hint = prev && prev.per100 !== null && prev.per100 > 0 ? (cur.per100 / prev.per100 >= 1.1 ? '→ 訪問から参加への転換が改善' : cur.per100 / prev.per100 <= 0.9 ? '→ 訪問は来ているが参加につながりにくくなっている' : '→ 大きな変化なし') : undefined;
-      groups.push({ title: '訪問→参加', items: [{ text: `訪問100件あたり参加 ${f(cur.per100)}件${prev && prev.per100 !== null ? `（前期 ${f(prev.per100)}件）` : ''}`, hint }] }); } }
+      groups.push({ title: '訪問→参加', items: [{ text: `訪問100件あたり参加 ${f(cur.per100)}件${prev && prev.per100 !== null ? `（前期 ${f(prev.per100)}件）` : ''}（参加日ベース・GA4計測月のみ）`, hint }] }); } }
 
   // 5. デバイス・地域
   { const dt = sum(devices); const rt = sum(regions);

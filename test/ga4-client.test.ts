@@ -27,6 +27,7 @@ describe('runReport', () => {
     expect(body.dateRanges[0]).toEqual({ startDate: '2024-01-01', endDate: '2024-12-31' });
     expect(body.dimensions).toEqual([{ name: 'sessionDefaultChannelGroup' }]);
     expect(body.metrics).toEqual([{ name: 'sessions' }, { name: 'totalUsers' }]);
+    expect(body.orderBys).toEqual([{ metric: { metricName: 'sessions' }, desc: true }]);
     expect(rows).toEqual([
       { dims: ['Organic Search'], mets: [120, 90] },
       { dims: ['Social'], mets: [80, 60] },

@@ -28,6 +28,7 @@ export async function runReport(
       dimensions: spec.dimensions.map(name => ({ name })),
       metrics: spec.metrics.map(name => ({ name })),
       limit: spec.limit ?? 20,
+      ...(spec.metrics[0] ? { orderBys: [{ metric: { metricName: spec.metrics[0] }, desc: true }] } : {}),
     }),
     signal: AbortSignal.timeout(8000),
   });

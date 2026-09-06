@@ -2,7 +2,7 @@ import type { Env } from './index.js';
 import { createSession, constantEquals } from './auth.js';
 import { loginPage, renderDashboard } from './pages.js';
 import { getHistory } from './data.js';
-import { resolvePeriod, priorPeriod } from './period.js';
+import { resolvePeriod, priorPeriod, alignPriorEnd } from './period.js';
 import { jstToday, addDaysToYmd } from './util.js';
 import { computeKpi } from './metrics/kpi.js';
 import { computeTrend, priorYearSeries, resolveGranularity } from './metrics/trend.js';
@@ -85,20 +85,24 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
       await getAccessToken(env);
       const range = { start: period.start, end: endClamped };
       const comparable = period.kind !== 'all';
+      const partial = endClamped < period.end; // 当期の終端が今日でクランプされた（期間が完了していない）
       const prevP = priorPeriod(period);
-      const prevRange = { start: prevP.start, end: clampEnd(prevP.end, today) };
+      // 当期が期間途中なら、前期も同じ経過日数で終端を切って揃える（フェアな比較にする）
+      const prevAligned = { ...prevP, end: alignPriorEnd(period, prevP, endClamped) };
+      const prevRange = { start: prevAligned.start, end: clampEnd(prevAligned.end, today) };
+      // 前期3レポートの失敗は比較を省略するだけに留め、当期の描画は継続する
       const [ch, sm, tp, dv, rg, ds, pch, psm, pds] = await Promise.all([
         runReport(env, CHANNEL_SPEC, range), runReport(env, SOURCE_MEDIUM_SPEC, range), runReport(env, TOP_PAGES_SPEC, range),
         runReport(env, DEVICE_SPEC, range), runReport(env, REGION_SPEC, range), runReport(env, DAILY_SESSIONS_SPEC, range),
-        comparable ? runReport(env, CHANNEL_SPEC, prevRange) : Promise.resolve(null),
-        comparable ? runReport(env, SOURCE_MEDIUM_SPEC, prevRange) : Promise.resolve(null),
-        comparable ? runReport(env, DAILY_SESSIONS_SPEC, prevRange) : Promise.resolve(null),
+        comparable ? runReport(env, CHANNEL_SPEC, prevRange).catch(() => null) : Promise.resolve(null),
+        comparable ? runReport(env, SOURCE_MEDIUM_SPEC, prevRange).catch(() => null) : Promise.resolve(null),
+        comparable ? runReport(env, DAILY_SESSIONS_SPEC, prevRange).catch(() => null) : Promise.resolve(null),
       ]);
       const channels = toNameValues(ch), devices = toNameValues(dv), regions = toNameValues(rg), topPages = toNameValues(tp), sourceMedium = toNameValues(sm);
       const overlay = computeTrafficOverlay(all, period, toDailySessions(ds));
-      const prevOverlay = pds ? computeTrafficOverlay(all, prevP, toDailySessions(pds)) : null;
+      const prevOverlay = pds ? computeTrafficOverlay(all, prevAligned, toDailySessions(pds)) : null;
       traffic = { channels, sourceMedium, topPages, devices, regions, overlay,
-        insights: buildGa4Insights({ period, channels, prevChannels: pch ? toNameValues(pch) : null, sourceMedium, prevSourceMedium: psm ? toNameValues(psm) : null, devices, regions, topPages, overlay, prevOverlay }),
+        insights: buildGa4Insights({ period, channels, prevChannels: pch ? toNameValues(pch) : null, sourceMedium, prevSourceMedium: psm ? toNameValues(psm) : null, devices, regions, topPages, overlay, prevOverlay, partial }),
         connected: true };
     } catch { traffic = emptyTraffic; }
   }
