@@ -8,6 +8,7 @@ import { renderTrendChart } from '../charts/line.js';
 import { renderMultiLine } from '../charts/multiline.js';
 import type { SeriesData } from '../metrics/series.js';
 import { describeSourceMedium } from './sourceLabel.js';
+import { deviceNameJa, regionNameJa } from './labels.js';
 
 export interface TrafficData {
   channels: NameValue[]; sourceMedium: NameValue[]; topPages: NameValue[];
@@ -17,11 +18,12 @@ export interface TrafficData {
   unavailable?: boolean;
 }
 
-function nvTable(rows: NameValue[], head: string, describe?: (label: string) => string, valueLabel = 'セッション'): string {
+function nvTable(rows: NameValue[], head: string, describe?: (label: string) => string, valueLabel = 'セッション', labelTransform?: (label: string) => string): string {
   const body = rows.map(r => {
+    const displayLabel = labelTransform ? labelTransform(r.label) : r.label;
     const desc = describe ? describe(r.label) : '';
     const note = desc ? `<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(desc)}</div>` : '';
-    return `<tr><td style="padding:4px 10px">${esc(r.label.slice(0, 30))}${note}</td><td style="padding:4px 10px;text-align:right;vertical-align:top">${r.sessions}</td></tr>`;
+    return `<tr><td style="padding:4px 10px;vertical-align:top">${esc(displayLabel.slice(0, 30))}${note}</td><td style="padding:4px 10px;text-align:right;vertical-align:top">${r.sessions.toLocaleString('ja-JP')}</td></tr>`;
   }).join('');
   return `<table style="font-size:13px;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:2px 10px">${esc(head)}</th><th style="padding:2px 10px">${esc(valueLabel)}</th></tr></thead><tbody>${body}</tbody></table>`;
 }
@@ -59,5 +61,5 @@ ${renderTrendChart(trend)}</div>`;
 ${overlayCard}
 <div class="card"><h2>参照元/メディア Top</h2>${seriesBlock(d.sourceSeries, granLabel, 'セッション')}${nvTable(d.sourceMedium, '参照元/メディア', describeSourceMedium)}</div>
 <div class="card"><h2>人気ページ Top</h2>${seriesBlock(d.pageSeries, granLabel, '表示回数')}${nvTable(d.topPages, 'ページ', undefined, '表示回数')}</div>
-<div class="card"><h2>デバイス・地域</h2><div style="display:flex;gap:24px;flex-wrap:wrap">${nvTable(d.devices, 'デバイス')}${nvTable(d.regions, '地域')}</div></div>`;
+<div class="card"><h2>デバイス・地域</h2><div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">${nvTable(d.devices, 'デバイス', undefined, 'セッション', deviceNameJa)}${nvTable(d.regions, '地域', undefined, 'セッション', regionNameJa)}</div></div>`;
 }

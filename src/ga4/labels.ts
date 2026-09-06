@@ -10,6 +10,14 @@ export function channelNameJa(label: string): string {
   return Object.hasOwn(CHANNELS, k) ? CHANNELS[k] : label;
 }
 
+const DEVICES: Record<string, string> = {
+  'mobile': 'スマホ', 'desktop': 'PC', 'tablet': 'タブレット', 'smart tv': 'テレビ',
+};
+export function deviceNameJa(label: string): string {
+  const k = label.trim().toLowerCase();
+  return Object.hasOwn(DEVICES, k) ? DEVICES[k] : label;
+}
+
 const REGIONS: Record<string, string> = {
   hokkaido: '北海道', aomori: '青森', iwate: '岩手', miyagi: '宮城', akita: '秋田', yamagata: '山形', fukushima: '福島',
   ibaraki: '茨城', tochigi: '栃木', gunma: '群馬', saitama: '埼玉', chiba: '千葉', tokyo: '東京', kanagawa: '神奈川',
@@ -20,6 +28,7 @@ const REGIONS: Record<string, string> = {
   kumamoto: '熊本', oita: '大分', miyazaki: '宮崎', kagoshima: '鹿児島', okinawa: '沖縄',
 };
 export function regionNameJa(label: string): string {
+  if (label.trim() === '(not set)') return '不明';
   const k = label.trim().toLowerCase().replace(/\s*(prefecture|-ken|-fu|-to)$/i, '');
   return Object.hasOwn(REGIONS, k) ? REGIONS[k] : label;
 }

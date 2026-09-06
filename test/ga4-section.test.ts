@@ -113,4 +113,29 @@ describe('renderTrafficSection', () => {
     const html = renderTrafficSection(connectedFixture, '2025-09-06〜2026-09-05');
     expect(html).not.toContain('font-size:11px;color:var(--muted);margin-top:1px');
   });
+  it('デバイス・地域テーブルは日本語ラベル・桁区切り・flex align-items:flex-start で引き伸ばし防止', () => {
+    const connectedFixture = {
+      ...base, connected: true,
+      devices: [{ label: 'mobile', sessions: 34271 }],
+      regions: [{ label: 'Tokyo', sessions: 12563 }],
+    };
+    const html = renderTrafficSection(connectedFixture, '2025-09-06〜2026-09-05');
+    expect(html).toContain('スマホ');
+    expect(html).toContain('東京');
+    expect(html).toContain('34,271');
+    expect(html).toContain('12,563');
+    expect(html).toContain('align-items:flex-start');
+  });
+  it('参照元テーブルには解説が付くが、人気ページ・デバイス・地域テーブルには解説が付かない（修正後も変わらず）', () => {
+    const connectedFixture = {
+      ...base, connected: true,
+      sourceMedium: [{ label: 'google / organic', sessions: 10 }],
+      topPages: [{ label: 'google / organic', sessions: 1 }],
+      devices: [{ label: 'google / organic', sessions: 1 }],
+      regions: [{ label: 'google / organic', sessions: 1 }],
+    };
+    const html = renderTrafficSection(connectedFixture, '2025-09-06〜2026-09-05');
+    const occurrences = html.split('Google検索の検索結果から').length - 1;
+    expect(occurrences).toBe(1);
+  });
 });

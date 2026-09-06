@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { channelNameJa, regionNameJa, pageNameJa } from '../src/ga4/labels.js';
+import { channelNameJa, regionNameJa, pageNameJa, deviceNameJa } from '../src/ga4/labels.js';
 
 describe('ga4 labels', () => {
   it('channelNameJa', () => {
@@ -12,6 +12,13 @@ describe('ga4 labels', () => {
     expect(channelNameJa('(not set)')).toBe('不明');
     expect(channelNameJa('Something New')).toBe('Something New');
   });
+  it('deviceNameJa', () => {
+    expect(deviceNameJa('mobile')).toBe('スマホ');
+    expect(deviceNameJa('DESKTOP')).toBe('PC');
+    expect(deviceNameJa('tablet')).toBe('タブレット');
+    expect(deviceNameJa('smart tv')).toBe('テレビ');
+    expect(deviceNameJa('foo')).toBe('foo');
+  });
   it('regionNameJa', () => {
     expect(regionNameJa('Tokyo')).toBe('東京'); expect(regionNameJa('Tochigi')).toBe('栃木'); expect(regionNameJa('Kanagawa')).toBe('神奈川');
     expect(regionNameJa('Hokkaido')).toBe('北海道'); expect(regionNameJa('California')).toBe('California');
@@ -19,6 +26,9 @@ describe('ga4 labels', () => {
   it('regionNameJa: 都道府県サフィックス除去', () => {
     expect(regionNameJa('Tokyo Prefecture')).toBe('東京');
     expect(regionNameJa('Osaka-fu')).toBe('大阪');
+  });
+  it('regionNameJa: (not set) → 不明', () => {
+    expect(regionNameJa('(not set)')).toBe('不明');
   });
   it('pageNameJa', () => { expect(pageNameJa('/')).toBe('トップページ'); expect(pageNameJa('/course')).toBe('/course'); });
 });
