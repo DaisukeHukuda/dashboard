@@ -16,5 +16,9 @@ describe('ga4 labels', () => {
     expect(regionNameJa('Tokyo')).toBe('東京'); expect(regionNameJa('Tochigi')).toBe('栃木'); expect(regionNameJa('Kanagawa')).toBe('神奈川');
     expect(regionNameJa('Hokkaido')).toBe('北海道'); expect(regionNameJa('California')).toBe('California');
   });
+  it('regionNameJa: 都道府県サフィックス除去', () => {
+    expect(regionNameJa('Tokyo Prefecture')).toBe('東京');
+    expect(regionNameJa('Osaka-fu')).toBe('大阪');
+  });
   it('pageNameJa', () => { expect(pageNameJa('/')).toBe('トップページ'); expect(pageNameJa('/course')).toBe('/course'); });
 });
