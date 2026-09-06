@@ -21,11 +21,13 @@ export function computeCohorts(all: HistoryRecord[], maxOffset: number): CohortR
     const firstDate = first.get(r.phoneHash)!;
     const cohort = ymOf(firstDate);
     const offset = monthsBetween(ymOf(firstDate), ymOf(r.date));
-    if (offset < 0 || offset > maxOffset) continue;
-    (sizes.get(cohort) ?? sizes.set(cohort, new Set()).get(cohort)!).add(r.phoneHash);
+    // within3(+1..+3)/yearLater(+11..+13) は maxOffset に関係なく常に集計する
+    const scanMax = Math.max(maxOffset, 13);
+    if (offset < 0 || offset > scanMax) continue;
+    if (offset <= maxOffset) (sizes.get(cohort) ?? sizes.set(cohort, new Set()).get(cohort)!).add(r.phoneHash);
     let byOffset = table.get(cohort);
     if (!byOffset) { byOffset = new Map(); table.set(cohort, byOffset); }
-    (byOffset.get(offset) ?? byOffset.set(offset, new Set()).get(offset)!).add(r.phoneHash);
+    if (offset <= maxOffset) (byOffset.get(offset) ?? byOffset.set(offset, new Set()).get(offset)!).add(r.phoneHash);
     if (offset >= 1 && offset <= 3) {
       (within3Sets.get(cohort) ?? within3Sets.set(cohort, new Set()).get(cohort)!).add(r.phoneHash);
     }

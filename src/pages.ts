@@ -66,9 +66,10 @@ section[data-media="sns"] .card{border-left:4px solid var(--m-sns)}
 .cohort-wrap{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:8px}
 .cohort{border-collapse:separate;border-spacing:0;font-size:11px;min-width:100%}
 .cohort th,.cohort td{padding:4px 6px;text-align:center;white-space:nowrap}
-.cohort thead th{position:sticky;top:0;background:#fff;z-index:2;color:var(--muted);font-weight:400;border-bottom:1px solid var(--line)}
-.cohort tbody th{position:sticky;left:0;background:#fff;z-index:1;text-align:left;font-weight:400;border-right:1px solid var(--line)}
+.cohort thead th{position:sticky;top:0;background:var(--card);z-index:2;color:var(--muted);font-weight:400;border-bottom:1px solid var(--line)}
+.cohort tbody th{position:sticky;left:0;background:var(--card);z-index:1;text-align:left;font-weight:400;border-right:1px solid var(--line)}
 .cohort thead th:first-child{left:0;z-index:3}
+.cohort td.future{background:#f3f4f6;color:var(--muted)}
 .cohort-sp{display:none}
 .cohort-wrap.cohort-sp{max-height:360px}
 @media(max-width:899px){

@@ -14,15 +14,15 @@ function renderPcTable(rows: CohortRow[], todayYm: string): string {
   }</tr></thead>`;
 
   const body = rows.map(r => {
+    const elapsed = monthsBetween(r.cohort, todayYm);
     const cells = Array.from({ length: PC_COLS }, (_, k) => {
-      const isFuture = monthsBetween(r.cohort, todayYm) < k;
-      if (isFuture) {
-        return `<td class="future" style="background:#f3f4f6;color:var(--muted)" title="まだ時期が来ていません">—</td>`;
+      if (elapsed < k) {
+        return `<td class="future" title="まだ時期が来ていません">—</td>`;
       }
       const v = r.retention[k] ?? 0;
       const rate = r.size ? v / r.size : 0;
-      const bg = k === 0 ? '#1e3a5f' : `rgba(30,58,95,${(0.1 + 0.9 * rate).toFixed(2)})`;
-      const color = rate > 0.5 || k === 0 ? '#fff' : '#1f2937';
+      const bg = k === 0 ? 'var(--accent)' : `rgba(30,58,95,${(0.1 + 0.9 * rate).toFixed(2)})`;
+      const color = rate > 0.5 || k === 0 ? '#fff' : 'var(--ink)';
       return `<td style="background:${bg};color:${color}">${Math.round(rate * 100)}%</td>`;
     }).join('');
     return `<tr><th scope="row">${escXml(r.cohort)} (${r.size})</th>${cells}</tr>`;
@@ -35,8 +35,9 @@ function renderSpTable(rows: CohortRow[], todayYm: string): string {
   const head = `<thead><tr><th>初回月</th><th>人数</th><th>3ヶ月以内</th><th>1年後</th></tr></thead>`;
 
   const body = rows.map(r => {
-    const within3 = monthsBetween(r.cohort, todayYm) < 3 ? '—' : `${pct(r.within3, r.size)}%`;
-    const yearLater = monthsBetween(r.cohort, todayYm) < 13 ? '—' : `${pct(r.yearLater, r.size)}%`;
+    const elapsed = monthsBetween(r.cohort, todayYm);
+    const within3 = elapsed < 3 ? '—' : `${pct(r.within3, r.size)}%`;
+    const yearLater = elapsed < 13 ? '—' : `${pct(r.yearLater, r.size)}%`;
     return `<tr><th scope="row">${escXml(r.cohort)}</th><td>${r.size}</td><td>${within3}</td><td>${yearLater}</td></tr>`;
   }).join('');
 
@@ -44,7 +45,7 @@ function renderSpTable(rows: CohortRow[], todayYm: string): string {
 }
 
 export function renderCohortGrid(rows: CohortRow[], todayYm: string): string {
-  if (rows.length === 0) return '<p>データがありません</p>';
-  const sorted = [...rows].sort((a, b) => b.cohort.localeCompare(a.cohort)); // 新しい初回月が上（入力配列は変更しない）
+  if (rows.length === 0) return '<p style="font-size:13px;color:var(--muted)">データがありません</p>';
+  const sorted = [...rows].sort((a, b) => (a.cohort < b.cohort ? 1 : a.cohort > b.cohort ? -1 : 0)); // 新しい初回月が上（入力配列は変更しない）
   return renderPcTable(sorted, todayYm) + renderSpTable(sorted, todayYm);
 }

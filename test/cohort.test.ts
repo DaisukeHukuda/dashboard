@@ -46,3 +46,13 @@ describe('computeCohorts', () => {
     expect(jan.yearLater).toBe(2); // p3, p4 のみ
   });
 });
+
+describe('computeCohorts: within3/yearLater は maxOffset に依存しない', () => {
+  it('maxOffset=12 でも +13ヶ月の再訪を yearLater に数え、retention は 13要素のまま', () => {
+    const all = [r('2023-01-10', 'p1'), r('2024-02-10', 'p1'), r('2023-01-10', 'p2')];
+    const jan = computeCohorts(all, 12).find(x => x.cohort === '2023-01')!;
+    expect(jan.yearLater).toBe(1);
+    expect(jan.retention).toHaveLength(13);
+    expect(jan.size).toBe(2);
+  });
+});

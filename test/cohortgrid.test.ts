@@ -51,6 +51,8 @@ describe('renderCohortGrid', () => {
   });
 
   it('空データは案内文言を返す', () => {
-    expect(renderCohortGrid([], '2026-09')).toBe('<p>データがありません</p>');
+    const out = renderCohortGrid([], '2026-09');
+    expect(out).toContain('データがありません');
+    expect(out).toContain('color:var(--muted)');
   });
 });
