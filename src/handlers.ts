@@ -79,7 +79,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
   const trendPrior = priorYearSeries(all, period, gran, trend);
   const heatmap = computeHeatmap(all, period, selectedCourse || undefined);
   const courses = courseList(all, period);
-  const cohorts = computeCohorts(all, 12);
+  const cohorts = computeCohorts(all, 13); // yearLater(+11〜+13)算出のため13ヶ月分まで集計する
   const courseRows = computeCourseBreakdown(all, period);
   const sourceRows = computeSourceBreakdown(all, period);
 

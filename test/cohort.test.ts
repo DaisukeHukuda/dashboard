@@ -23,4 +23,26 @@ describe('computeCohorts', () => {
   it('ignores empty phoneHash', () => {
     expect(computeCohorts([r('2023-01-01', '')], 3)).toHaveLength(0);
   });
+
+  it('within3: +1〜+3のユニーク人数（同一人物の複数回は1人）、+4は含まない', () => {
+    const all = [
+      r('2023-01-05', 'p1'), r('2023-02-10', 'p1'), r('2023-04-10', 'p1'), // 初回 + +1 + +3 → 1人
+      r('2023-01-05', 'p2'), r('2023-05-10', 'p2'), // 初回 + +4 → within3には含まない
+    ];
+    const rows = computeCohorts(all, 4);
+    const jan = rows.find(x => x.cohort === '2023-01')!;
+    expect(jan.within3).toBe(1);
+  });
+
+  it('yearLater: +11・+13は含む、+10・+14は含まない', () => {
+    const all = [
+      r('2023-01-05', 'p3'), r('2023-12-10', 'p3'), // +11
+      r('2023-01-05', 'p4'), r('2024-02-10', 'p4'), // +13
+      r('2023-01-05', 'p5'), r('2023-11-10', 'p5'), // +10
+      r('2023-01-05', 'p6'), r('2024-03-10', 'p6'), // +14
+    ];
+    const rows = computeCohorts(all, 14);
+    const jan = rows.find(x => x.cohort === '2023-01')!;
+    expect(jan.yearLater).toBe(2); // p3, p4 のみ
+  });
 });

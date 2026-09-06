@@ -33,7 +33,7 @@ describe('renderHeatmap', () => {
 
 describe('renderCohortGrid', () => {
   it('renders a row per cohort with percentage text', () => {
-    const svg = renderCohortGrid([{ cohort: '2023-01', size: 4, retention: [4, 2, 1] }]);
+    const svg = renderCohortGrid([{ cohort: '2023-01', size: 4, retention: [4, 2, 1], within3: 2, yearLater: 0 }]);
     expect(svg).toContain('2023-01');
     expect(svg).toContain('%');
   });
