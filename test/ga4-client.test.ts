@@ -16,6 +16,14 @@ const sampleResp = {
   ],
 };
 
+let lastBody: string = '';
+function createFetchWithCapture(response: unknown) {
+  return vi.fn().mockImplementation((_url: string, init: RequestInit) => {
+    lastBody = String(init.body);
+    return Promise.resolve({ ok: true, json: async () => response });
+  });
+}
+
 describe('runReport', () => {
   it('POSTs to the property runReport URL with bearer and parses rows', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => sampleResp });
@@ -46,5 +54,14 @@ describe('runReport', () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
     const rows = await runReport(env(), { key: 'x', dimensions: ['d'], metrics: ['m'] }, { start: '2024-01-01', end: '2024-01-31' }, fetchMock as unknown as typeof fetch);
     expect(rows).toEqual([]);
+  });
+  it('dimensionFilter があれば inListFilter を送り、キャッシュキーに値を含む', async () => {
+    const e = env();
+    const spec = { key: 'sourceSeries', dimensions: ['date', 'sessionSourceMedium'], metrics: ['sessions'], limit: 100000, dimensionFilter: { fieldName: 'sessionSourceMedium', values: ['google / organic', '(direct) / (none)'] } };
+    const fetchMock = createFetchWithCapture(sampleResp);
+    await runReport(e, spec, { start: '2026-01-01', end: '2026-01-31' }, fetchMock as unknown as typeof fetch);
+    const body = JSON.parse(lastBody);
+    expect(body.dimensionFilter).toEqual({ filter: { fieldName: 'sessionSourceMedium', inListFilter: { values: ['google / organic', '(direct) / (none)'] } } });
+    expect(await e.DASH.get('ga4:sourceSeries:2026-01-01:2026-01-31:google / organic|(direct) / (none)')).not.toBeNull();
   });
 });

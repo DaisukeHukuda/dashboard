@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CHANNEL_SPEC, DAILY_SESSIONS_SPEC, toNameValues, toDailySessions } from '../src/ga4/reports.js';
+import { CHANNEL_SPEC, DAILY_SESSIONS_SPEC, toNameValues, toDailySessions, sourceSeriesSpec, pageSeriesSpec, toKeyedDaily } from '../src/ga4/reports.js';
 
 describe('specs', () => {
   it('channel spec uses default channel group + sessions/users', () => {
@@ -26,5 +26,17 @@ describe('toDailySessions', () => {
   it('normalizes YYYYMMDD to YYYY-MM-DD and sorts asc', () => {
     const out = toDailySessions([{ dims: ['20240711'], mets: [5] }, { dims: ['20240710'], mets: [3] }]);
     expect(out).toEqual([{ date: '2024-07-10', sessions: 3 }, { date: '2024-07-11', sessions: 5 }]);
+  });
+});
+
+describe('sourceSeriesSpec / pageSeriesSpec / toKeyedDaily', () => {
+  it('sourceSeriesSpec / pageSeriesSpec / toKeyedDaily', () => {
+    const s = sourceSeriesSpec(['a / b']);
+    expect(s.dimensions).toEqual(['date', 'sessionSourceMedium']);
+    expect(s.dimensionFilter).toEqual({ fieldName: 'sessionSourceMedium', values: ['a / b'] });
+    const p = pageSeriesSpec(['/']);
+    expect(p.dimensions).toEqual(['date', 'pagePath']);
+    expect(p.metrics).toEqual(['screenPageViews']);
+    expect(toKeyedDaily([{ dims: ['20260801', 'a / b'], mets: [5] }])).toEqual([{ date: '2026-08-01', key: 'a / b', value: 5 }]);
   });
 });

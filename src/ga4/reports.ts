@@ -9,6 +9,15 @@ export const REGION_SPEC: Ga4ReportSpec = { key: 'region', dimensions: ['region'
 // silently truncateされ overlay の集計が過少になる。GA4 の上限(250,000)を
 // 十分下回りつつ何年分もの日次行をカバーできる値に引き上げる。
 export const DAILY_SESSIONS_SPEC: Ga4ReportSpec = { key: 'dailySessions', dimensions: ['date'], metrics: ['sessions'], limit: 100000 };
+export const DAILY_PAGEVIEWS_SPEC: Ga4ReportSpec = { key: 'dailyPageviews', dimensions: ['date'], metrics: ['screenPageViews'], limit: 100000 };
+
+export function sourceSeriesSpec(values: string[]): Ga4ReportSpec {
+  return { key: 'sourceSeries', dimensions: ['date', 'sessionSourceMedium'], metrics: ['sessions'], limit: 100000, dimensionFilter: { fieldName: 'sessionSourceMedium', values } };
+}
+
+export function pageSeriesSpec(values: string[]): Ga4ReportSpec {
+  return { key: 'pageSeries', dimensions: ['date', 'pagePath'], metrics: ['screenPageViews'], limit: 100000, dimensionFilter: { fieldName: 'pagePath', values } };
+}
 
 export interface NameValue { label: string; sessions: number; users?: number; }
 
@@ -28,4 +37,12 @@ export function toDailySessions(rows: Ga4Row[]): { date: string; sessions: numbe
       return { date, sessions: r.mets[0] ?? 0 };
     })
     .sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
+export function toKeyedDaily(rows: Ga4Row[]): { date: string; key: string; value: number }[] {
+  return rows.map(r => {
+    const d = r.dims[0] ?? '';
+    const date = d.length === 8 ? `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}` : d;
+    return { date, key: r.dims[1] ?? '', value: r.mets[0] ?? 0 };
+  });
 }

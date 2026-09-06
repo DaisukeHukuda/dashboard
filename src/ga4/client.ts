@@ -14,7 +14,7 @@ function parseRows(j: { rows?: Ga4ApiRow[] }): Ga4Row[] {
 export async function runReport(
   env: Env, spec: Ga4ReportSpec, range: { start: string; end: string }, fetchImpl: typeof fetch = fetch,
 ): Promise<Ga4Row[]> {
-  const cacheKey = `ga4:${spec.key}:${range.start}:${range.end}`;
+  const cacheKey = `ga4:${spec.key}:${range.start}:${range.end}${spec.dimensionFilter ? ':' + spec.dimensionFilter.values.join('|') : ''}`;
   const cached = await env.DASH.get(cacheKey);
   if (cached) return JSON.parse(cached) as Ga4Row[];
 
@@ -29,6 +29,7 @@ export async function runReport(
       metrics: spec.metrics.map(name => ({ name })),
       limit: spec.limit ?? 20,
       ...(spec.metrics[0] ? { orderBys: [{ metric: { metricName: spec.metrics[0] }, desc: true }] } : {}),
+      ...(spec.dimensionFilter ? { dimensionFilter: { filter: { fieldName: spec.dimensionFilter.fieldName, inListFilter: { values: spec.dimensionFilter.values } } } } : {}),
     }),
     signal: AbortSignal.timeout(8000),
   });
