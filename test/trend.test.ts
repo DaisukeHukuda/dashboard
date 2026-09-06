@@ -72,10 +72,11 @@ describe('day granularity', () => {
     ] as HistoryRecord[];
     const pts = computeTrend(recs, resolvePeriod('2026-08', '2026-09-06'), 'day');
     expect(pts).toHaveLength(31); // 2026-08は31日
-    expect(pts[0]).toEqual({ bucket: '2026-08-01', label: '8/1', bookings: 2, revenue: 2000 });
-    expect(pts[1]).toEqual({ bucket: '2026-08-02', label: '8/2', bookings: 0, revenue: 0 });
-    expect(pts[14]).toEqual({ bucket: '2026-08-15', label: '8/15', bookings: 1, revenue: 500 });
-    expect(pts[30]).toEqual({ bucket: '2026-08-31', label: '8/31', bookings: 0, revenue: 0 });
+    // label=bucket に統一（表示整形は line.ts の axisLabels に一本化し、multiline と規則を揃える）
+    expect(pts[0]).toEqual({ bucket: '2026-08-01', label: '2026-08-01', bookings: 2, revenue: 2000 });
+    expect(pts[1]).toEqual({ bucket: '2026-08-02', label: '2026-08-02', bookings: 0, revenue: 0 });
+    expect(pts[14]).toEqual({ bucket: '2026-08-15', label: '2026-08-15', bookings: 1, revenue: 500 });
+    expect(pts[30]).toEqual({ bucket: '2026-08-31', label: '2026-08-31', bookings: 0, revenue: 0 });
   });
   it('month/week 粒度はゼロ埋めしない（従来どおり実績があるバケットのみ）', () => {
     const recs = [

@@ -21,7 +21,7 @@ import { computeTrafficOverlay } from './metrics/traffic.js';
 import { buildGa4Insights } from './ga4/insights.js';
 import type { TrafficData } from './ga4/section.js';
 import { buildSeries } from './metrics/series.js';
-import { sourceShortName } from './ga4/sourceLabel.js';
+import { distinctSourceNames } from './ga4/sourceLabel.js';
 import { pageNameJa } from './ga4/labels.js';
 import { igGet } from './ig/client.js';
 import { parseInsightSeries, parseMediaList, parseMediaInsights, buildPostRows } from './ig/reports.js';
@@ -123,7 +123,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
       const spPeriod = seriesPeriod(period, endClamped);
       const dailyTotals = dailySessions.map(d => ({ date: d.date, value: d.sessions }));
       const emptyToNull = (sd: ReturnType<typeof buildSeries> | null) => sd && sd.buckets.length > 0 ? sd : null;
-      const sourceSeries = srcRows ? emptyToNull(buildSeries(toKeyedDaily(srcRows), spPeriod, gran, srcTop, dailyTotals, sourceShortName)) : null;
+      const sourceSeries = srcRows ? emptyToNull(buildSeries(toKeyedDaily(srcRows), spPeriod, gran, srcTop, dailyTotals, distinctSourceNames(srcTop))) : null;
       const pageSeries = pageRows
         ? emptyToNull(buildSeries(toKeyedDaily(pageRows), spPeriod, gran, pageTop, dailyPv ? toDailySessions(dailyPv).map(d => ({ date: d.date, value: d.sessions })) : null, pageNameJa))
         : null;

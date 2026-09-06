@@ -23,7 +23,8 @@ export function computeTrend(all: HistoryRecord[], period: Period, granularity: 
     cur.bookings += 1; cur.revenue += r.amount;
     map.set(bucket, cur);
   }
-  const label = (b: string) => granularity === 'day' ? `${Number(b.slice(5, 7))}/${Number(b.slice(8, 10))}` : b;
+  // 全粒度で bucket をそのまま label にする（表示整形は line.ts の axisLabels に一本化し、multiline と規則を揃える）
+  const label = (b: string) => b;
   if (granularity === 'day') {
     // 日次は期間内の全日をバケット化する（予約0の日も0件で出す）
     const points: TrendPoint[] = [];

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { describeSourceMedium, isInstagramSource, isAsoviewSource, sourceShortName } from '../src/ga4/sourceLabel.js';
+import { describeSourceMedium, isInstagramSource, isAsoviewSource, sourceShortName, distinctSourceNames } from '../src/ga4/sourceLabel.js';
 
 describe('describeSourceMedium', () => {
   const cases: [string, string][] = [
@@ -36,8 +36,22 @@ describe('sourceShortName', () => {
     ['google / organic', 'Google検索'], ['yahoo / organic', 'Yahoo!検索'], ['(direct) / (none)', '直接アクセス'],
     ['l.instagram.com / referral', 'Instagram'], ['m.facebook.com / referral', 'Facebook'], ['asoview.com / referral', 'アソビュー'],
     ['example.jp / referral', 'example.jp'], ['google / cpc', 'Google広告'], ['(not set)', '不明'], ['foo / bar', 'foo / bar'],
+    ['instagram / cpc', 'Instagram広告'], ['instagram / paid_social', 'Instagram広告'],
   ];
   for (const [i, o] of cases) it(`${i} → ${o}`, () => expect(sourceShortName(i)).toBe(o));
+});
+
+describe('distinctSourceNames', () => {
+  it('短縮名が重複しないキーはそのまま短縮名', () => {
+    const nameOf = distinctSourceNames(['google / organic', 'l.instagram.com / referral']);
+    expect(nameOf('google / organic')).toBe('Google検索');
+    expect(nameOf('l.instagram.com / referral')).toBe('Instagram');
+  });
+  it('短縮名が重複するキーはsource部分を括弧で付与して区別する', () => {
+    const nameOf = distinctSourceNames(['l.instagram.com / referral', 'instagram / social']);
+    expect(nameOf('l.instagram.com / referral')).toBe('Instagram（l.instagram.com）');
+    expect(nameOf('instagram / social')).toBe('Instagram（instagram）');
+  });
 });
 
 describe('isInstagramSource / isAsoviewSource', () => {

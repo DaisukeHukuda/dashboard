@@ -34,6 +34,14 @@ describe('renderMultiLine', () => {
   });
 });
 
+describe('renderMultiLine Y軸目盛の重複抑制', () => {
+  it('丸めた値が直前と同じなら目盛ラベルを描かない（max=3で0,1,2,3のみ）', () => {
+    const svg = renderMultiLine({ buckets: ['2026-01'], series: [{ name: 'A', values: [3] }] });
+    const yLabels = [...svg.matchAll(/text-anchor="end">([\d,]+)<\/text>/g)].map(m => Number(m[1].replace(/,/g, '')));
+    expect(yLabels).toEqual([0, 1, 2, 3]);
+  });
+});
+
 describe('truncMiddle', () => {
   it('maxChars以下ならそのまま', () => { expect(truncMiddle('Google検索', 12)).toBe('Google検索'); });
   it('maxCharsを超えると中央を…で省略し、先頭と末尾が残る', () => {

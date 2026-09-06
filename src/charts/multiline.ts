@@ -19,8 +19,13 @@ export function renderMultiLine(data: SeriesData): string {
   const max = Math.max(1, ...data.series.flatMap(s => s.values));
   const xOf = (i: number) => n === 1 ? left + plotW / 2 : left + (i * plotW) / (n - 1);
   let s = svgOpen(W, H);
-  // グリッドと目盛
-  for (let g = 0; g <= 4; g++) { const v = (max * g) / 4; const y = scaleY(v, max, top, plotH); s += `<line x1="${left}" x2="${W - right}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#e5e7eb"/><text x="${left - 6}" y="${(y + 3).toFixed(1)}" font-size="9" fill="#6b7280" text-anchor="end">${Math.round(v).toLocaleString('ja-JP')}</text>`; }
+  // グリッドと目盛（丸めた値が直前と同じ場合はラベルの重複を避けるため描かない）
+  let lastLabel: number | null = null;
+  for (let g = 0; g <= 4; g++) {
+    const v = (max * g) / 4; const y = scaleY(v, max, top, plotH); const rounded = Math.round(v);
+    s += `<line x1="${left}" x2="${W - right}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#e5e7eb"/>`;
+    if (rounded !== lastLabel) { s += `<text x="${left - 6}" y="${(y + 3).toFixed(1)}" font-size="9" fill="#6b7280" text-anchor="end">${rounded.toLocaleString('ja-JP')}</text>`; lastLabel = rounded; }
+  }
   // 系列
   const slot = Math.floor((W - left - right) / data.series.length);
   const legendMax = Math.max(6, Math.floor((slot - 18) / 10));

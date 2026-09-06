@@ -58,9 +58,26 @@ export function sourceShortName(label: string): string {
   if (s === '(direct)' || medium === '(none)') return '直接アクセス';
   const engine = Object.hasOwn(SEARCH_ENGINES, s) ? SEARCH_ENGINES[s] : null;
   if (medium === 'organic') return `${engine ?? source}検索`;
-  if (medium === 'cpc' || medium === 'ppc' || medium.startsWith('paid')) return `${engine ?? source}広告`;
+  if (medium === 'cpc' || medium === 'ppc' || medium.startsWith('paid')) {
+    const sns = SNS.find(k => k.match.test(s));
+    return `${sns ? sns.name : (engine ?? source)}広告`;
+  }
   const sns = SNS.find(k => k.match.test(s)); if (sns) return sns.name;
   const site = KNOWN_SITES.find(k => k.match.test(s)); if (site) return site.name.replace(/（.*）$/, '');
   if (medium === 'referral') return source;
   return label;
+}
+
+// 上位キー群の短縮名が重複する場合だけ、区別のためsource部分を括弧で付ける関数を返す。
+// 例: l.instagram.com / referral と instagram / social はどちらも短縮名が「Instagram」になるため、
+// 「Instagram（l.instagram.com）」「Instagram（instagram）」のように出し分ける。
+export function distinctSourceNames(topKeys: string[]): (key: string) => string {
+  const counts = new Map<string, number>();
+  for (const k of topKeys) { const short = sourceShortName(k); counts.set(short, (counts.get(short) ?? 0) + 1); }
+  return (key: string) => {
+    const short = sourceShortName(key);
+    if ((counts.get(short) ?? 0) <= 1) return short;
+    const sourcePart = (key.split(' / ')[0] ?? '').trim();
+    return `${short}（${sourcePart}）`;
+  };
 }
