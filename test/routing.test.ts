@@ -163,4 +163,20 @@ describe('routing', () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
+
+  it('scheduled はIG設定時にフォロワーを記録し、未設定なら何もしない', async () => {
+    const envIg: Env = { DATA: fakeKV(), DASH: fakeKV(), ADMIN_USER: 'admin', ADMIN_PASSWORD: 'pw', SESSION_SECRET: 'secret', IG_ACCESS_TOKEN: 'tok', IG_USER_ID: '17841000000000000' };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ followers_count: 4321 }) }));
+    const waited: Promise<unknown>[] = [];
+    await worker.scheduled({} as never, envIg, { waitUntil: (p: Promise<unknown>) => { waited.push(p); } } as never);
+    await Promise.all(waited);
+    const keys = (await envIg.DASH.list({ prefix: 'ig:followers:' })).keys.map(k => k.name);
+    expect(keys.length).toBe(1);
+
+    const noIg: Env = { DATA: fakeKV(), DASH: fakeKV(), ADMIN_USER: 'admin', ADMIN_PASSWORD: 'pw', SESSION_SECRET: 'secret' };
+    const w2: Promise<unknown>[] = [];
+    await worker.scheduled({} as never, noIg, { waitUntil: (p: Promise<unknown>) => { w2.push(p); } } as never);
+    expect(w2.length).toBe(0);
+    vi.restoreAllMocks(); vi.unstubAllGlobals();
+  });
 });

@@ -3,7 +3,7 @@ import { igGet } from './client.js';
 import { jstToday } from '../util.js';
 
 const PREFIX = 'ig:followers:';
-export const FOLLOWERS_COOLDOWN_KEY = 'ig:followers:cooldown';
+export const FOLLOWERS_COOLDOWN_KEY = 'ig:followers-cooldown';
 
 export async function recordFollowerSnapshot(env: Env, count: number, today: string): Promise<void> {
   const key = `${PREFIX}${today}`;
@@ -36,8 +36,10 @@ export async function getFollowerSeries(env: Env): Promise<{ date: string; count
   const { keys } = await env.DASH.list({ prefix: PREFIX });
   const out: { date: string; count: number }[] = [];
   for (const k of keys) {
+    const date = k.name.slice(PREFIX.length);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue; // 日付形式以外（旧cooldownキー等）は無視
     const v = await env.DASH.get(k.name);
-    if (v !== null) out.push({ date: k.name.slice(PREFIX.length), count: Number(v) });
+    if (v !== null) out.push({ date, count: Number(v) });
   }
   return out.sort((a, b) => (a.date < b.date ? -1 : 1));
 }

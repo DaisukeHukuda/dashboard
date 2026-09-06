@@ -28,6 +28,16 @@ describe('follower snapshots', () => {
   it('returns [] when no snapshots', async () => {
     expect(await getFollowerSeries(env())).toEqual([]);
   });
+  it('getFollowerSeries は日付形式以外のキー（cooldown等）を無視する', async () => {
+    const e = env();
+    await e.DASH.put('ig:followers:2026-09-05', '100');
+    await e.DASH.put('ig:followers:cooldown', '1'); // 旧キー形式が残っていても混入しない
+    await e.DASH.put('ig:followers-cooldown', '1');
+    expect(await getFollowerSeries(e)).toEqual([{ date: '2026-09-05', count: 100 }]);
+  });
+  it('クールダウンキーは記録接頭辞の外にある', () => {
+    expect(FOLLOWERS_COOLDOWN_KEY.startsWith('ig:followers:')).toBe(false);
+  });
 });
 
 describe('ensureFollowerSnapshot（ビュー非依存の1日1回記録）', () => {

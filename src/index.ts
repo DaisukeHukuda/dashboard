@@ -2,6 +2,7 @@ import type { KV } from './kv.js';
 import { verifySession } from './auth.js';
 import { handleLogin, handleLogout, handleHome, handleSectionOrder } from './handlers.js';
 import { loginPage } from './pages.js';
+import { ensureFollowerSnapshot } from './ig/followers.js';
 
 export interface Env {
   DATA: KV;
@@ -52,5 +53,9 @@ export default {
     const headers = new Headers(res.headers);
     headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
     return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+  },
+  async scheduled(_controller: unknown, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<void> {
+    if (!(env.IG_ACCESS_TOKEN && env.IG_USER_ID)) return;
+    ctx.waitUntil(ensureFollowerSnapshot(env)); // 失敗はensure内で握る（クールダウン）
   },
 };

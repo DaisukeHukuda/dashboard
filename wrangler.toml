@@ -6,3 +6,6 @@ kv_namespaces = [
   { binding = "DATA", id = "a237d8666bc742419b1805c6dc40017d" },
   { binding = "DASH", id = "02774304b1ef4eadbe3e1628ff26a397" },
 ]
+
+[triggers]
+crons = ["0 16 * * *"]  # JST 01:00 にフォロワー数を自動記録
