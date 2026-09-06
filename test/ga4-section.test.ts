@@ -13,6 +13,7 @@ describe('renderTrafficSection', () => {
     const connectedFixture = {
       ...base, connected: true,
       channels: [{ label: 'Organic Search', sessions: 60, users: 40 }],
+      sourceMedium: [{ label: 'google / organic', sessions: 10 }],
       topPages: [{ label: '/tour', sessions: 20 }],
       overlay: [{ bucket: '2024-06', sessions: 100, bookings: 5 }],
       insights: ['流入の最大チャネルは Organic Search（全体の 100%）。'],
@@ -22,6 +23,7 @@ describe('renderTrafficSection', () => {
     expect(html).toContain('Organic Search');
     expect(html).toContain('人気ページ');
     expect(html).toContain('認知→予約');
+    expect(html).toContain('Google検索の検索結果から');
   });
   it('接続済みは見出しに対象期間ラベルが出る', () => {
     const connectedFixture = { ...base, connected: true };
