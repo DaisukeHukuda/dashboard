@@ -5,7 +5,7 @@ import { getHistory } from './data.js';
 import { resolvePeriod } from './period.js';
 import { jstToday, addDaysToYmd } from './util.js';
 import { computeKpi } from './metrics/kpi.js';
-import { computeTrend, priorYearSeries } from './metrics/trend.js';
+import { computeTrend, priorYearSeries, resolveGranularity } from './metrics/trend.js';
 import { computeHeatmap, courseList } from './metrics/heatmap.js';
 import { computeCohorts } from './metrics/cohort.js';
 import { computeCourseBreakdown } from './metrics/course.js';
@@ -57,9 +57,9 @@ export function handleLogout(): Response {
 
 export async function handleHome(url: URL, env: Env, _username: string): Promise<Response> {
   const view = resolveView(url.searchParams.get('view'));
-  const period = resolvePeriod(url.searchParams.get('period'), jstToday());
+  const period = resolvePeriod(url.searchParams.get('period'), jstToday(), url.searchParams.get('from'), url.searchParams.get('to'));
   const selectedCourse = url.searchParams.get('course') ?? '';
-  const gran = url.searchParams.get('g') === 'week' ? 'week' : 'month';
+  const gran = resolveGranularity(url.searchParams.get('g'), period);
 
   const all = await getHistory(env.DATA);
   const kpi = computeKpi(all, period);

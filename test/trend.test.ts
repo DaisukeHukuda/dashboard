@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeTrend, priorYearSeries } from '../src/metrics/trend.js';
+import { computeTrend, priorYearSeries, defaultGranularity, allowedGranularities, resolveGranularity } from '../src/metrics/trend.js';
 import { resolvePeriod } from '../src/period.js';
 import type { HistoryRecord } from '../src/types.js';
 
@@ -60,5 +60,34 @@ describe('priorYearSeries', () => {
     const prior = priorYearSeries(recs, p, 'month', points);
     expect(prior.length).toBe(points.length);
     expect(prior.every(v => v === null)).toBe(true);
+  });
+});
+
+describe('day granularity', () => {
+  it('day は日付バケット・M/Dラベル', () => {
+    const recs = [
+      { date: '2026-08-01', course: 'A', pax: 1, amount: 1000, status: '完了', phoneHash: 'x' },
+      { date: '2026-08-01', course: 'A', pax: 1, amount: 1000, status: '完了', phoneHash: 'y' },
+      { date: '2026-08-15', course: 'A', pax: 1, amount: 500, status: '完了', phoneHash: 'z' },
+    ] as HistoryRecord[];
+    const pts = computeTrend(recs, resolvePeriod('2026-08', '2026-09-06'), 'day');
+    expect(pts).toEqual([
+      { bucket: '2026-08-01', label: '8/1', bookings: 2, revenue: 2000 },
+      { bucket: '2026-08-15', label: '8/15', bookings: 1, revenue: 500 },
+    ]);
+  });
+  it('既定粒度と許容粒度', () => {
+    const month = resolvePeriod('2026-08', '2026-09-06');
+    expect(defaultGranularity(month)).toBe('day');
+    expect(allowedGranularities(month)).toEqual(['day', 'week', 'month']);
+    const y = resolvePeriod('2025', '2026-09-06');
+    expect(defaultGranularity(y)).toBe('month');
+    expect(allowedGranularities(y)).toEqual(['month', 'week']);
+  });
+  it('resolveGranularity は許容外なら既定', () => {
+    const y = resolvePeriod('2025', '2026-09-06');
+    expect(resolveGranularity('day', y)).toBe('month');
+    expect(resolveGranularity('week', y)).toBe('week');
+    expect(resolveGranularity(null, resolvePeriod('2026-08', '2026-09-06'))).toBe('day');
   });
 });

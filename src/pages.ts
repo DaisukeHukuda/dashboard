@@ -1,6 +1,6 @@
 import type { Period } from './period.js';
 import type { Kpi } from './metrics/kpi.js';
-import type { TrendPoint } from './metrics/trend.js';
+import type { TrendPoint, Granularity } from './metrics/trend.js';
 import type { Heatmap } from './metrics/heatmap.js';
 import type { CohortRow } from './metrics/cohort.js';
 import type { CourseRow } from './metrics/course.js';
@@ -90,14 +90,14 @@ export interface DashboardData {
   period: Period; kpi: Kpi; trend: TrendPoint[]; heatmap: Heatmap;
   courses: string[]; selectedCourse: string; cohorts: CohortRow[];
   courseRows: CourseRow[]; sourceRows: CourseRow[]; insights: string[];
-  granularity: 'month' | 'week'; trendPrior: (number | null)[];
+  granularity: Granularity; trendPrior: (number | null)[];
   traffic: TrafficData;
   social: SocialData;
   sectionOrder: SectionId[];
   view: ViewId;
 }
 
-function periodSelect(period: Period, view: ViewId, selectedCourse: string, granularity: 'month' | 'week'): string {
+function periodSelect(period: Period, view: ViewId, selectedCourse: string, granularity: Granularity): string {
   const years = [2024, 2023, 2022, 2021, 2020];
   const opt = (v: string, label: string, sel: boolean) => `<option value="${v}"${sel ? ' selected' : ''}>${esc(label)}</option>`;
   const cur = period.kind === 'year' ? period.start.slice(0, 4) : period.kind;
@@ -132,7 +132,7 @@ export function renderDashboard(d: DashboardData): string {
 
   const insightList = d.insights.map(s => `<li style="margin:4px 0">${esc(s)}</li>`).join('');
 
-  const gToggle = (g: 'month' | 'week', label: string) => {
+  const gToggle = (g: Granularity, label: string) => {
     const params = new URLSearchParams();
     params.set('period', d.period.kind === 'year' ? d.period.start.slice(0, 4) : d.period.kind);
     params.set('view', d.view);

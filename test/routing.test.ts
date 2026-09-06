@@ -42,6 +42,18 @@ describe('routing', () => {
     vi.unstubAllGlobals();
   });
 
+  it('period=YYYY-MM と custom がURLから解決され、期間ラベルに反映される', async () => {
+    const form = new URLSearchParams({ username: 'admin', password: 'pw' });
+    const login = await worker.fetch(new Request('https://x/login', { method: 'POST', body: form }), env);
+    const cookie = cookieOf(login);
+    const m = await (await worker.fetch(new Request('https://x/?period=2026-08', { headers: { cookie } }), env)).text();
+    expect(m).toContain('2026年8月');
+    const c = await (await worker.fetch(new Request('https://x/?period=custom&from=2026-04-01&to=2026-06-30', { headers: { cookie } }), env)).text();
+    expect(c).toContain('2026-04-01〜2026-06-30');
+    const bad = await (await worker.fetch(new Request('https://x/?period=custom&from=2026-06-30&to=2026-04-01', { headers: { cookie } }), env)).text();
+    expect(bad).toContain('直近12ヶ月');
+  });
+
   it('未認証の /api/section-order は 401', async () => {
     const res = await worker.fetch(new Request('https://x/api/section-order', {
       method: 'POST', body: JSON.stringify({ order: [...DEFAULT_ORDER] }),
