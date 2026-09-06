@@ -1,6 +1,6 @@
-import type { Period } from './period.js';
+import { type Period, periodQuery, comparisonLabel } from './period.js';
 import type { Kpi } from './metrics/kpi.js';
-import type { TrendPoint, Granularity } from './metrics/trend.js';
+import { type Granularity, type TrendPoint, allowedGranularities } from './metrics/trend.js';
 import type { Heatmap } from './metrics/heatmap.js';
 import type { CohortRow } from './metrics/cohort.js';
 import type { CourseRow } from './metrics/course.js';
@@ -11,6 +11,7 @@ import { renderCohortGrid } from './charts/cohortgrid.js';
 import { renderTrafficSection, type TrafficData } from './ga4/section.js';
 import { renderSocialSection, type SocialData } from './ig/section.js';
 import { type SectionId, type ViewId, MEDIA_OF, sectionsForView } from './sections.js';
+import { jstToday } from './util.js';
 
 export function esc(s: string): string {
   return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
@@ -97,27 +98,39 @@ export interface DashboardData {
   view: ViewId;
 }
 
+const hiddenInputs = (obj: Record<string, string>) => Object.entries(obj).map(([k, v]) => `<input type="hidden" name="${k}" value="${esc(v)}">`).join('');
+
 function periodSelect(period: Period, view: ViewId, selectedCourse: string, granularity: Granularity): string {
-  const years = [2024, 2023, 2022, 2021, 2020];
+  const thisYear = Number(jstToday().slice(0, 4));
+  const years: number[] = []; for (let y = thisYear; y >= 2017; y--) years.push(y);
   const opt = (v: string, label: string, sel: boolean) => `<option value="${v}"${sel ? ' selected' : ''}>${esc(label)}</option>`;
-  const cur = period.kind === 'year' ? period.start.slice(0, 4) : period.kind;
+  const pq = periodQuery(period);
+  const cur = pq.period;
+  const common = { view, ...(selectedCourse ? { course: selectedCourse } : {}) };
+  const isSpecial = period.kind === 'month' || period.kind === 'custom';
+  const special = isSpecial ? opt(cur, period.label, true) : '';
+  const extra = period.kind === 'custom' ? hiddenInputs({ from: period.start, to: period.end }) : '';
   return `<form method="get" style="display:flex;gap:8px;align-items:center">
-<input type="hidden" name="view" value="${view}">
-${selectedCourse ? `<input type="hidden" name="course" value="${esc(selectedCourse)}">` : ''}
-${granularity === 'week' ? '<input type="hidden" name="g" value="week">' : ''}
+${hiddenInputs({ ...common, g: granularity })}${extra}
 <label style="margin:0">期間</label>
 <select name="period" onchange="this.form.submit()">
-${opt('last12', '直近12ヶ月', cur === 'last12')}
+${special}${opt('last12', '直近12ヶ月', cur === 'last12')}
 ${opt('last24', '直近24ヶ月', cur === 'last24')}
 ${opt('all', '全期間', cur === 'all')}
 ${years.map(y => opt(String(y), `${y}年`, cur === String(y))).join('')}
-</select></form>`;
+</select></form>
+<details class="period-more"${isSpecial ? ' open' : ''}>
+<summary style="font-size:12px;color:var(--accent);cursor:pointer;margin-top:6px">月・期間を指定</summary>
+<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:13px">
+<form method="get" style="display:flex;gap:6px;align-items:center">${hiddenInputs(common)}<label style="margin:0">月</label><input type="month" name="period" value="${period.kind === 'month' ? period.start.slice(0, 7) : ''}" required><button type="submit">表示</button></form>
+<form method="get" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${hiddenInputs({ ...common, period: 'custom' })}<label style="margin:0">期間</label><input type="date" name="from" value="${period.kind === 'custom' ? period.start : ''}" required>〜<input type="date" name="to" value="${period.kind === 'custom' ? period.end : ''}" required><button type="submit">表示</button></form>
+</div></details>`;
 }
 
 export function renderDashboard(d: DashboardData): string {
   const k = d.kpi;
   const range = `${d.period.start}〜${d.period.end}`;
-  const cmp = d.period.kind === 'last24' ? '前24ヶ月比' : '前年比';
+  const cmp = comparisonLabel(d.period);
   const kpis = [
     kpiCard('予約件数', `${k.bookings}件`, `${cmp} ${yoyLabel(k.yoyBookings)}`),
     kpiCard('売上', yen(k.revenue), `${cmp} ${yoyLabel(k.yoyRevenue)}`),
@@ -133,25 +146,24 @@ export function renderDashboard(d: DashboardData): string {
   const insightList = d.insights.map(s => `<li style="margin:4px 0">${esc(s)}</li>`).join('');
 
   const gToggle = (g: Granularity, label: string) => {
-    const params = new URLSearchParams();
-    params.set('period', d.period.kind === 'year' ? d.period.start.slice(0, 4) : d.period.kind);
-    params.set('view', d.view);
-    if (g !== 'month') params.set('g', g);
+    const params = new URLSearchParams({ ...periodQuery(d.period), view: d.view, g });
     if (d.selectedCourse) params.set('course', d.selectedCourse);
     const active = d.granularity === g;
     return `<a href="/?${params.toString()}" style="font-size:12px;padding:2px 8px;border-radius:6px;text-decoration:none;${active ? 'background:var(--accent);color:#fff' : 'color:var(--accent)'}">${esc(label)}</a>`;
   };
+  const gLabels: Record<Granularity, string> = { month: '月次', week: '週次', day: '日次' };
+  const gToggles = allowedGranularities(d.period).map(g => gToggle(g, gLabels[g])).join(' ');
 
   const sections: Record<SectionId, string> = {
     kpi: `<div class="card"><h2>KPI サマリー${pnote(range)}</h2><div style="display:flex;gap:10px;flex-wrap:wrap">${kpis}</div></div>`,
     insights: `<div class="card"><h2>戦略インサイト${pnote(range)}</h2><ul style="margin:0;padding-left:18px;font-size:14px">${insightList}</ul></div>`,
     trend: `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
 <h2 style="margin:0">売上・予約トレンド（棒=売上 / 線=件数）${pnote(range)}</h2>
-<span>${gToggle('month', '月次')} ${gToggle('week', '週次')}</span></div>
+<span>${gToggles}</span></div>
 ${renderTrendChart(d.trend, d.trendPrior)}</div>`,
     heatmap: `<div class="card"><h2>季節 × 曜日ヒートマップ${pnote(range)}</h2>
 <form method="get" style="margin-bottom:8px">
-<input type="hidden" name="period" value="${d.period.kind === 'year' ? d.period.start.slice(0, 4) : d.period.kind}">
+${hiddenInputs(periodQuery(d.period))}
 <input type="hidden" name="view" value="${d.view}">
 ${d.granularity === 'week' ? '<input type="hidden" name="g" value="week">' : ''}
 <select name="course" onchange="this.form.submit()">${courseOpts}</select>
@@ -175,9 +187,9 @@ ${renderCourseBars(d.sourceRows)}</div>`,
   const viewQuery = (v: ViewId) => {
     const p = new URLSearchParams();
     p.set('view', v);
-    p.set('period', d.period.kind === 'year' ? d.period.start.slice(0, 4) : d.period.kind);
+    for (const [k, val] of Object.entries(periodQuery(d.period))) p.set(k, val);
     if (d.selectedCourse) p.set('course', d.selectedCourse);
-    if (d.granularity !== 'month') p.set('g', d.granularity);
+    p.set('g', d.granularity);
     return `/?${p.toString()}`;
   };
   const navItem = (v: ViewId, label: string, dotColor: string) => {

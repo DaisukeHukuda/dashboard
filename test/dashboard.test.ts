@@ -144,4 +144,32 @@ describe('dashboard rendering', () => {
     const html = renderDashboard({ ...base, view: 'bookings' });
     expect((html.match(/name="view" value="bookings"/g) ?? []).length).toBeGreaterThanOrEqual(2);
   });
+
+  it('月・期間指定フォームと年の自動生成', () => {
+    const html = renderDashboard({ ...base, period: resolvePeriod('last12', '2026-09-06') });
+    expect(html).toContain('月・期間を指定');
+    expect(html).toContain('type="month"');
+    expect(html).toContain('type="date"');
+    expect(html).toContain('>2026年<');
+    expect(html).toContain('>2017年<');
+  });
+  it('月指定中はセレクタ先頭に現在期間・detailsがopen・入力に現在値', () => {
+    const html = renderDashboard({ ...base, period: resolvePeriod('2026-08', '2026-09-06'), granularity: 'day' });
+    expect(html).toMatch(/<option value="2026-08" selected>2026年8月<\/option>/);
+    expect(html).toContain('<details class="period-more" open>');
+    expect(html).toContain('type="month" name="period" value="2026-08"');
+  });
+  it('custom 指定は from/to が全リンク・フォームに引き継がれる', () => {
+    const html = renderDashboard({ ...base, period: resolvePeriod('custom', '2026-09-06', '2026-04-01', '2026-06-30'), granularity: 'day' });
+    expect((html.match(/period=custom&from=2026-04-01&to=2026-06-30/g) ?? []).length).toBeGreaterThanOrEqual(4); // サイドバー4リンク
+    expect(html).toContain('name="from" value="2026-04-01"');
+    expect(html).toContain('name="to" value="2026-06-30"');
+    expect(html).toContain('前年同期間比');
+  });
+  it('短い期間では日次トグルが出る・長い期間では出ない', () => {
+    const short = renderDashboard({ ...base, period: resolvePeriod('2026-08', '2026-09-06'), granularity: 'day' });
+    expect(short).toContain('>日次<');
+    const long = renderDashboard({ ...base, period: resolvePeriod('last12', '2026-09-06'), granularity: 'month' });
+    expect(long).not.toContain('>日次<');
+  });
 });
