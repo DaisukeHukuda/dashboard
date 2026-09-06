@@ -2,7 +2,7 @@ import { svgOpen, svgClose, escXml } from './svg.js';
 import { axisLabels } from './axis.js';
 import { daysBetweenYmd } from '../util.js';
 export function renderFollowerChart(points: { date: string; count: number }[]): string {
-  const p = [...points].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const p = [...points].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
   if (p.length <= 1) return `<p style="font-size:13px;color:var(--muted)">まだ蓄積が${p.length}日分です（毎日1:00に自動記録されます）。</p>`;
   const W = 720, H = 260, top = 16, left = 56, right = 12, diffH = 40, bottom = 30;
   const plotH = H - top - bottom - diffH - 8; const plotW = W - left - right;
@@ -10,7 +10,7 @@ export function renderFollowerChart(points: { date: string; count: number }[]): 
   const xOf = (d: string) => left + (daysBetweenYmd(p[0].date, d) / span) * plotW;
   const counts = p.map(x => x.count); const min = Math.min(...counts), max = Math.max(...counts);
   const range = max - min; const pad = range === 0 ? 10 : Math.max(5, Math.ceil(range * 0.15));
-  const lo = min - pad, hi = max + pad;
+  const lo = Math.max(0, min - pad), hi = max + pad;
   const yOf = (v: number) => top + plotH - ((v - lo) / (hi - lo)) * plotH;
   let s = svgOpen(W, H);
   for (let g = 0; g <= 4; g++) { const v = Math.round(lo + ((hi - lo) * g) / 4); const y = yOf(v); s += `<line x1="${left}" x2="${W - right}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#e5e7eb"/><text x="${left - 6}" y="${(y + 3).toFixed(1)}" font-size="9" fill="#6b7280" text-anchor="end">${v.toLocaleString('ja-JP')}</text>`; }
@@ -19,8 +19,30 @@ export function renderFollowerChart(points: { date: string; count: number }[]): 
   // 差分棒（下段）
   const base = top + plotH + 8 + diffH / 2; const maxAbs = Math.max(1, ...p.slice(1).map((x, i) => Math.abs(x.count - p[i].count)));
   s += `<line x1="${left}" x2="${W - right}" y1="${base}" y2="${base}" stroke="#e5e7eb"/>`;
-  for (let i = 1; i < p.length; i++) { const d = p[i].count - p[i - 1].count; const h = (Math.abs(d) / maxAbs) * (diffH / 2); const x = xOf(p[i].date); const color = d > 0 ? '#16a34a' : d < 0 ? '#dc2626' : '#9ca3af'; const y = d >= 0 ? base - h : base; s += `<rect class="diff-bar" x="${(x - 3).toFixed(1)}" y="${y.toFixed(1)}" width="6" height="${Math.max(1, h).toFixed(1)}" fill="${color}"><title>${escXml(p[i].date)}: ${d > 0 ? '+' : ''}${d}</title></rect>`; }
+  for (let i = 1; i < p.length; i++) {
+    const d = p[i].count - p[i - 1].count; const h = (Math.abs(d) / maxAbs) * (diffH / 2); const x = xOf(p[i].date);
+    const color = d > 0 ? '#16a34a' : d < 0 ? '#dc2626' : '#9ca3af'; const y = d >= 0 ? base - h : base;
+    const gapDays = daysBetweenYmd(p[i - 1].date, p[i].date);
+    const gapNote = gapDays > 1 ? `（${gapDays}日ぶり）` : '';
+    s += `<rect class="diff-bar" x="${(x - 3).toFixed(1)}" y="${y.toFixed(1)}" width="6" height="${Math.max(1, h).toFixed(1)}" fill="${color}"><title>${escXml(p[i].date)}: ${d > 0 ? '+' : ''}${d}${gapNote}</title></rect>`;
+  }
   const labels = axisLabels(p.map(x => ({ bucket: x.date, label: x.date })), Math.ceil(p.length / 10) || 1);
-  labels.forEach((t, i) => { if (t === null) return; s += `<text x="${xOf(p[i].date).toFixed(1)}" y="${H - 10}" font-size="10" fill="#6b7280" text-anchor="middle">${escXml(t)}</text>`; });
+  const candidates: { i: number; t: string; x: number }[] = [];
+  labels.forEach((t, i) => { if (t !== null) candidates.push({ i, t, x: xOf(p[i].date) }); });
+  // 直近（右端）のラベルを必ず残し、そこから左へ 30px 未満で密集するものを間引く
+  let lastX: number | null = null;
+  const drawnRev: { i: number; t: string; x: number }[] = [];
+  for (let k = candidates.length - 1; k >= 0; k--) {
+    const c = candidates[k];
+    if (lastX !== null && Math.abs(c.x - lastX) < 30) continue;
+    lastX = c.x;
+    drawnRev.push(c);
+  }
+  const drawn = drawnRev.reverse();
+  drawn.forEach((d, idx) => {
+    const isLast = idx === drawn.length - 1;
+    const anchor = isLast && d.x > W - right - 12 ? 'end' : 'middle';
+    s += `<text x="${d.x.toFixed(1)}" y="${H - 10}" font-size="10" fill="#6b7280" text-anchor="${anchor}">${escXml(d.t)}</text>`;
+  });
   return s + svgClose();
 }

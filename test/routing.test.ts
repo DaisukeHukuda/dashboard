@@ -179,4 +179,17 @@ describe('routing', () => {
     expect(w2.length).toBe(0);
     vi.restoreAllMocks(); vi.unstubAllGlobals();
   });
+
+  it('scheduled は ensureFollowerSnapshot が想定外に例外を投げても waitUntil の Promise を拒否しない', async () => {
+    const throwingKV = {
+      get: async (): Promise<string | null> => { throw new Error('KV down'); },
+      put: async () => {},
+      delete: async () => {},
+      list: async () => ({ keys: [] }),
+    };
+    const envIg: Env = { DATA: fakeKV(), DASH: throwingKV as unknown as ReturnType<typeof fakeKV>, ADMIN_USER: 'admin', ADMIN_PASSWORD: 'pw', SESSION_SECRET: 'secret', IG_ACCESS_TOKEN: 'tok', IG_USER_ID: '17841000000000000' };
+    const waited: Promise<unknown>[] = [];
+    await worker.scheduled({} as never, envIg, { waitUntil: (p: Promise<unknown>) => { waited.push(p); } } as never);
+    await expect(Promise.all(waited)).resolves.toBeDefined();
+  });
 });

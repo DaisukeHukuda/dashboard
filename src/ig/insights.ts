@@ -59,7 +59,7 @@ export function buildIgInsights(input: {
       let hint: string | undefined;
       if (frontAvg > 0) {
         const ratio = backAvg / frontAvg;
-        hint = ratio >= 1.1 ? '→ 直近の投稿が届いている' : ratio <= 0.9 ? '→ 直近の反応が鈍い' : undefined;
+        hint = ratio >= 1.15 ? '→ 直近の投稿が届いている' : ratio <= 0.85 ? '→ 直近はリーチが落ちている' : undefined;
       } else if (backAvg > 0) {
         hint = '→ 直近の投稿が届いている';
       }
@@ -86,19 +86,20 @@ export function buildIgInsights(input: {
       if (withReach.length > 0) {
         const savedSum = withReach.reduce((s, p) => s + p.saved, 0);
         const reachSum = withReach.reduce((s, p) => s + p.reach, 0);
-        const rate = (savedSum / reachSum) * 100;
-        items.push({ text: `保存率 ${(Math.round(rate * 10) / 10).toFixed(1)}%` });
+        const rate = Math.round((savedSum / reachSum) * 1000) / 10;
+        const hint = rate >= 3 ? '→ 保存が多く、行き先候補として残されている' : undefined;
+        items.push({ text: `保存率 ${rate.toFixed(1)}%（最新12投稿）`, hint });
       }
       if (posts.length > 0) {
         const top = posts.reduce((a, b) => (b.engagement > a.engagement ? b : a));
-        const cap = top.caption ? `「${top.caption.slice(0, 20)}」` : '(キャプションなし)';
-        items.push({ text: `最高は${cap}（いいね${top.likes}/保存${top.saved}）` });
+        const cap = top.caption ? `「${[...top.caption].slice(0, 20).join('')}」` : '(キャプションなし)';
+        items.push({ text: `最新12投稿で最高は${cap}（いいね${top.likes}/保存${top.saved}）` });
       }
       groups.push({ title: '投稿', items });
     } }
 
   // 4. 投稿×参加
-  { if (overlay.length >= 4) {
+  { if (overlay.length >= 6) {
       const sortedPosts = [...overlay.map(o => o.posts)].sort((a, b) => a - b);
       const median = sortedPosts[Math.floor(sortedPosts.length / 2)];
       const high = overlay.filter(o => o.posts >= median);
@@ -107,8 +108,9 @@ export function buildIgInsights(input: {
         const items: InsightItem[] = [];
         const highAvg = Math.round(high.reduce((s, o) => s + o.bookings, 0) / high.length);
         const lowAvg = Math.round(low.reduce((s, o) => s + o.bookings, 0) / low.length);
-        const hint = lowAvg > 0 ? (highAvg >= lowAvg * 1.2 ? '→ 投稿量と参加に相関の傾向' : undefined)
-          : (highAvg > 0 ? '→ 投稿量と参加に相関の傾向' : undefined);
+        const corrHint = '→ 投稿量と参加に相関の傾向（季節の影響もあるため因果ではなく目安）';
+        const hint = lowAvg > 0 ? (highAvg >= lowAvg * 1.2 ? corrHint : undefined)
+          : (highAvg > 0 ? corrHint : undefined);
         items.push({ text: `投稿が多い月の参加は平均 ${highAvg}件、少ない月は ${lowAvg}件`, hint });
         groups.push({ title: '投稿×参加', items });
       }
@@ -129,7 +131,7 @@ export function buildIgInsights(input: {
       const entries = knownFirst.map(t => ({ type: t, count: counts.get(t)! }));
       entries.sort((a, b) => b.count - a.count);
       const items: InsightItem[] = [];
-      const withCount = (label: string, n: number) => label.endsWith('）') ? `${label}${n}` : `${label} ${n}`;
+      const withCount = (label: string, n: number) => `${label} ${n}件`;
       items.push({ text: entries.map(e => withCount(typeLabel(e.type), e.count)).join('・') });
       const reachByType = new Map<string, { sum: number; n: number }>();
       for (const p of posts) {
@@ -138,12 +140,13 @@ export function buildIgInsights(input: {
         cur.sum += p.reach; cur.n += 1;
         reachByType.set(p.mediaType, cur);
       }
-      const avgEntries = [...reachByType.entries()].map(([type, v]) => ({ type, avg: v.sum / v.n }));
+      const avgEntries = [...reachByType.entries()].map(([type, v]) => ({ type, avg: v.sum / v.n, n: v.n }));
       if (avgEntries.length > 0) {
         avgEntries.sort((a, b) => b.avg - a.avg);
         const top = avgEntries[0];
         const txt = avgEntries.map(e => `${typeLabel(e.type)} ${num(e.avg)}`).join(' / ');
-        items.push({ text: `平均リーチ: ${txt}`, hint: `→ ${typeLabel(top.type)}が最も届いている` });
+        const hint = (avgEntries.length >= 2 && top.n >= 2) ? `→ ${typeLabel(top.type)}が最も届いている` : undefined;
+        items.push({ text: `平均リーチ: ${txt}`, hint });
       }
       groups.push({ title: '投稿タイプ', items });
     } }

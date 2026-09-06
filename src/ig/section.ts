@@ -33,9 +33,11 @@ export function renderSocialSection(d: SocialData, periodNote: string): string {
   const fs = summarizeFollowers(d.followers);
   const signed = (n: number | null) => n === null ? '—' : `${n > 0 ? '+' : ''}${n.toLocaleString('ja-JP')}`;
   const mini = (label: string, value: string) => `<div style="flex:1;min-width:120px;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px"><div style="font-size:11px;color:var(--muted)">${esc(label)}</div><div style="font-size:18px;font-weight:700">${esc(value)}</div></div>`;
+  const mmdd = (ymd: string) => `${Number(ymd.slice(5, 7))}/${Number(ymd.slice(8, 10))}`;
+  const last30Label = fs.last30From === null ? '直近30日の増減' : `直近30日の増減（${mmdd(fs.last30From)}比）`;
   return `<div class="card"><h2>Instagram（SNS）インサイト</h2>${insights}</div>
 <div class="card"><h2>フォロワー推移<span class="p-note">毎日1:00に自動記録（9/6以前は閲覧日のみ）</span></h2>
-<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${mini('現在', fs.current === null ? '—' : `${fs.current.toLocaleString('ja-JP')}人`)}${mini('蓄積開始からの増減', signed(fs.sinceStart))}${mini('直近30日の増減', signed(fs.last30))}</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${mini('現在', fs.current === null ? '—' : `${fs.current.toLocaleString('ja-JP')}人`)}${mini('蓄積開始からの増減', signed(fs.sinceStart))}${mini(last30Label, signed(fs.last30))}</div>
 ${renderFollowerChart(d.followers)}</div>
 <div class="card"><h2>リーチ推移<span class="p-note">対象: 期間末尾の最大30日</span></h2>${seriesChart(d.reach)}</div>
 <div class="card"><h2>投稿 × 予約（棒=投稿数 / 線=予約件数）<span class="p-note">対象: ${periodNote}（投稿は最新25件の範囲）</span></h2>${renderTrendChart(overlayTp)}</div>

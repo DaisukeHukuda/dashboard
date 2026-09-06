@@ -41,5 +41,5 @@ export async function getFollowerSeries(env: Env): Promise<{ date: string; count
     const v = await env.DASH.get(k.name);
     if (v !== null) out.push({ date, count: Number(v) });
   }
-  return out.sort((a, b) => (a.date < b.date ? -1 : 1));
+  return out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }

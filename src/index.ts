@@ -56,6 +56,6 @@ export default {
   },
   async scheduled(_controller: unknown, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<void> {
     if (!(env.IG_ACCESS_TOKEN && env.IG_USER_ID)) return;
-    ctx.waitUntil(ensureFollowerSnapshot(env)); // 失敗はensure内で握る（クールダウン）
+    ctx.waitUntil(ensureFollowerSnapshot(env).catch(() => {})); // 失敗はensure内で握る（クールダウン）が、想定外の例外でwaitUntilを拒否させない
   },
 };

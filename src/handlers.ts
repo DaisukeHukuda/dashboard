@@ -176,7 +176,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
       } catch { /* media失敗は無視 */ }
 
       const overlay = computeSocialOverlay(all, period, media);
-      social = { followers, reach, posts, overlay, insights: buildIgInsights({ period, followers, reach, posts, media, overlay }), connected: true };
+      social = { followers, reach, posts, overlay, insights: buildIgInsights({ period: seriesPeriod(period, endClamped), followers, reach, posts, media, overlay }), connected: true };
     } catch { social = emptySocial; }
   }
 

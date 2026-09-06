@@ -18,6 +18,7 @@ Sup! Sup! マーケティング分析ダッシュボード（Phase 1）。
    - `npx wrangler secret put ADMIN_PASSWORD`
    - `npx wrangler secret put SESSION_SECRET`
 4. `npx wrangler deploy`
+5. IG フォロワー数は Cron Trigger（`0 16 * * *` UTC = JST 01:00）で毎日記録。`wrangler deploy` で自動登録される。
 
 ## ローカル
 `.dev.vars` に ADMIN_USER/ADMIN_PASSWORD/SESSION_SECRET を置き、`npx wrangler dev`。
