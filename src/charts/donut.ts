@@ -1,26 +1,43 @@
 import type { NameValue } from '../ga4/reports.js';
 import { svgOpen, svgClose, escXml } from './svg.js';
+import { channelNameJa } from '../ga4/labels.js';
 
 const COLORS = ['#1e3a5f', '#3b6ea5', '#6aa0d8', '#9ac0e8', '#c7d2e0', '#8fa3bf', '#4a5b78', '#2c3e50'];
+const MIN_FRAC = 0.03;
 
 export function renderDonut(rows: NameValue[]): string {
-  const W = 360, cx = 90, cy = 90, rOuter = 80, rInner = 46;
+  const W = 520, H = 200, cx = 260, cy = 100, rOuter = 70, rInner = 40, elbow = rOuter + 14, labelX = 34;
   const total = rows.reduce((s, r) => s + r.sessions, 0);
-  let s = svgOpen(W, 180);
-  if (total <= 0) return s + `<text x="10" y="90" font-size="12" fill="#6b7280">データなし</text>` + svgClose();
+  let s = svgOpen(W, H);
+  if (total <= 0) return s + `<text x="10" y="100" font-size="12" fill="#6b7280">データなし</text>` + svgClose();
+  // 3%未満を「その他」に合算
+  const major = rows.filter(r => r.sessions / total >= MIN_FRAC);
+  const minorSum = rows.filter(r => r.sessions / total < MIN_FRAC).reduce((a, r) => a + r.sessions, 0);
+  const slices = [...major.map(r => ({ name: channelNameJa(r.label), raw: r.label, sessions: r.sessions })),
+    ...(minorSum > 0 ? [{ name: 'その他', raw: 'その他', sessions: minorSum }] : [])];
+  // 角度計算
   let a0 = -Math.PI / 2;
-  rows.forEach((r, i) => {
-    const frac = r.sessions / total;
-    const a1 = a0 + frac * Math.PI * 2;
-    const large = frac > 0.5 ? 1 : 0;
-    const p = (ang: number, rad: number) => `${(cx + rad * Math.cos(ang)).toFixed(1)} ${(cy + rad * Math.sin(ang)).toFixed(1)}`;
-    const d = `M ${p(a0, rOuter)} A ${rOuter} ${rOuter} 0 ${large} 1 ${p(a1, rOuter)} L ${p(a1, rInner)} A ${rInner} ${rInner} 0 ${large} 0 ${p(a0, rInner)} Z`;
-    s += `<path d="${d}" fill="${COLORS[i % COLORS.length]}"><title>${escXml(r.label)}: ${r.sessions}</title></path>`;
-    // 凡例
-    const ly = 16 + i * 18;
-    s += `<rect x="196" y="${ly}" width="10" height="10" fill="${COLORS[i % COLORS.length]}"/>`;
-    s += `<text x="212" y="${ly + 9}" font-size="11" fill="#1f2937">${escXml(r.label.slice(0, 16))} ${Math.round(frac * 100)}%</text>`;
-    a0 = a1;
-  });
+  const geo = slices.map((sl, i) => { const frac = sl.sessions / total; const a1 = a0 + frac * Math.PI * 2; const mid = (a0 + a1) / 2; const g = { ...sl, i, frac, a0, a1, mid }; a0 = a1; return g; });
+  const p = (ang: number, rad: number) => [cx + rad * Math.cos(ang), cy + rad * Math.sin(ang)] as const;
+  // ラベル縦位置（左右別にソートして14px以上離す）
+  const place = (side: 'L' | 'R') => {
+    const items = geo.filter(g => (Math.cos(g.mid) >= 0) === (side === 'R')).map(g => ({ g, y: p(g.mid, elbow)[1] })).sort((a, b) => a.y - b.y);
+    for (let k = 1; k < items.length; k++) if (items[k].y < items[k - 1].y + 14) items[k].y = items[k - 1].y + 14;
+    const over = items.length ? items[items.length - 1].y - (H - 8) : 0;
+    if (over > 0) items.forEach(it => { it.y -= over; });
+    return new Map(items.map(it => [it.g.i, it.y]));
+  };
+  const ys = new Map([...place('L'), ...place('R')]);
+  for (const g of geo) {
+    const large = g.frac > 0.5 ? 1 : 0;
+    const f = (pt: readonly [number, number]) => `${pt[0].toFixed(1)} ${pt[1].toFixed(1)}`;
+    const d = `M ${f(p(g.a0, rOuter))} A ${rOuter} ${rOuter} 0 ${large} 1 ${f(p(g.a1, rOuter))} L ${f(p(g.a1, rInner))} A ${rInner} ${rInner} 0 ${large} 0 ${f(p(g.a0, rInner))} Z`;
+    s += `<path d="${d}" fill="${COLORS[g.i % COLORS.length]}"><title>${escXml(g.raw)}: ${g.sessions}</title></path>`;
+    const right = Math.cos(g.mid) >= 0;
+    const [ax, ay] = p(g.mid, rOuter); const [ex] = p(g.mid, elbow); const ly = ys.get(g.i) ?? ay;
+    const tx = right ? W - labelX : labelX;
+    s += `<polyline points="${ax.toFixed(1)},${ay.toFixed(1)} ${ex.toFixed(1)},${ly.toFixed(1)} ${(right ? tx - 4 : tx + 4).toFixed(1)},${ly.toFixed(1)}" fill="none" stroke="#9ca3af" stroke-width="1"/>`;
+    s += `<text x="${tx}" y="${(ly + 4).toFixed(1)}" font-size="11" fill="#1f2937" text-anchor="${right ? 'end' : 'start'}">${escXml(g.name)} ${Math.round(g.frac * 100)}%</text>`;
+  }
   return s + svgClose();
 }
