@@ -4,6 +4,7 @@ import { type Granularity, type TrendPoint, allowedGranularities } from './metri
 import type { Heatmap } from './metrics/heatmap.js';
 import type { CohortRow } from './metrics/cohort.js';
 import type { CourseRow } from './metrics/course.js';
+import type { InsightGroup } from './metrics/insights.js';
 import { renderTrendChart } from './charts/line.js';
 import { renderCourseBars } from './charts/bar.js';
 import { renderHeatmap } from './charts/heatmap.js';
@@ -90,7 +91,7 @@ ${sub ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(sub
 export interface DashboardData {
   period: Period; kpi: Kpi; trend: TrendPoint[]; heatmap: Heatmap;
   courses: string[]; selectedCourse: string; cohorts: CohortRow[];
-  courseRows: CourseRow[]; sourceRows: CourseRow[]; insights: string[];
+  courseRows: CourseRow[]; sourceRows: CourseRow[]; insights: InsightGroup[];
   granularity: Granularity; trendPrior: (number | null)[];
   traffic: TrafficData;
   social: SocialData;
@@ -143,7 +144,7 @@ export function renderDashboard(d: DashboardData): string {
     .concat(d.courses.map(c => `<option value="${esc(c)}"${c === d.selectedCourse ? ' selected' : ''}>${esc(c)}</option>`))
     .join('');
 
-  const insightList = d.insights.map(s => `<li style="margin:4px 0">${esc(s)}</li>`).join('');
+  const insightList = d.insights.flatMap(g => g.items).map(i => `<li style="margin:4px 0">${esc(i.text)}${i.hint ? ` ${esc(i.hint)}` : ''}</li>`).join('');
 
   const gToggle = (g: Granularity, label: string) => {
     const params = new URLSearchParams({ ...periodQuery(d.period), view: d.view, g });

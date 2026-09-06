@@ -71,7 +71,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
   const courseRows = computeCourseBreakdown(all, period);
   const sourceRows = computeSourceBreakdown(all, period);
 
-  const insights = buildInsights({ kpi, heatmap, trend });
+  const insights = buildInsights({ all, period, kpi, heatmap, trend, courseRows, sourceRows });
 
   // GA4 未設定/失敗時は Phase 1 を退行させず未接続表示にフォールバック
   const emptyTraffic: TrafficData = { channels: [], sourceMedium: [], topPages: [], devices: [], regions: [], overlay: [], insights: [], connected: false };
