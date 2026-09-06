@@ -11,10 +11,19 @@ function parseRows(j: { rows?: Ga4ApiRow[] }): Ga4Row[] {
   }));
 }
 
+// 32bit FNV-1a → 8桁hex（キャッシュキー用。衝突は実用上無視できる）
+function shortHash(s: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(16).padStart(8, '0');
+}
+
 export async function runReport(
   env: Env, spec: Ga4ReportSpec, range: { start: string; end: string }, fetchImpl: typeof fetch = fetch,
 ): Promise<Ga4Row[]> {
-  const cacheKey = `ga4:${spec.key}:${range.start}:${range.end}${spec.dimensionFilter ? ':' + spec.dimensionFilter.values.join('|') : ''}`;
+  // dimensionFilter.values を生のまま連結すると（長い pagePath 5件などで）KVキー上限(512バイト)を
+  // 超えうるため、短いハッシュに変換する。区切りを ' ' にして値中の '|' との衝突も回避。
+  const cacheKey = `ga4:${spec.key}:${range.start}:${range.end}${spec.dimensionFilter ? ':f' + shortHash(spec.dimensionFilter.values.join(' ')) : ''}`;
   const cached = await env.DASH.get(cacheKey);
   if (cached) return JSON.parse(cached) as Ga4Row[];
 

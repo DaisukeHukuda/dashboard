@@ -62,6 +62,16 @@ describe('runReport', () => {
     await runReport(e, spec, { start: '2026-01-01', end: '2026-01-31' }, fetchMock as unknown as typeof fetch);
     const body = JSON.parse(lastBody);
     expect(body.dimensionFilter).toEqual({ filter: { fieldName: 'sessionSourceMedium', inListFilter: { values: ['google / organic', '(direct) / (none)'] } } });
-    expect(await e.DASH.get('ga4:sourceSeries:2026-01-01:2026-01-31:google / organic|(direct) / (none)')).not.toBeNull();
+    // キャッシュキーは値を生連結せず短いハッシュにする（KVキー上限512バイト対策）。
+    // shortHash はハッシュ元文字列に対する純粋関数なので、同じアルゴリズムをここで再現して照合する。
+    function shortHash(s: string): string {
+      let h = 0x811c9dc5;
+      for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+      return h.toString(16).padStart(8, '0');
+    }
+    const expectedKey = `ga4:sourceSeries:2026-01-01:2026-01-31:f${shortHash('google / organic (direct) / (none)')}`;
+    expect(await e.DASH.get(expectedKey)).not.toBeNull();
+    expect(expectedKey.startsWith('ga4:sourceSeries:2026-01-01:2026-01-31:f')).toBe(true);
+    expect(expectedKey.length).toBeLessThan(64);
   });
 });
