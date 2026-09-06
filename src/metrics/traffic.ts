@@ -26,21 +26,15 @@ export function computeTrafficOverlay(
 
 export interface OverlaySummary {
   sessions: number; bookings: number;
-  per100: number | null;                       // 訪問100件あたり予約件数（sessions=0はnull）
-  best: { bucket: string; per100: number } | null; // 訪問30件以上の月で最も効率が良かった月
+  per100: number | null;                       // 訪問100件あたり参加件数（sessions=0はnull）
 }
 
-const MIN_SESSIONS_FOR_BEST = 30;
-
+// 合計・比率はGA4の計測データがある月（sessions>0）のみで算出する。
+// GA4計測前の月（全期間・年別選択時）は予約（参加）だけがあり分母がないため対象外。
 export function summarizeOverlay(points: TrafficPoint[]): OverlaySummary {
-  const sessions = points.reduce((a, p) => a + p.sessions, 0);
-  const bookings = points.reduce((a, p) => a + p.bookings, 0);
+  const measured = points.filter(p => p.sessions > 0);
+  const sessions = measured.reduce((a, p) => a + p.sessions, 0);
+  const bookings = measured.reduce((a, p) => a + p.bookings, 0);
   const per100 = sessions > 0 ? (bookings / sessions) * 100 : null;
-  let best: OverlaySummary['best'] = null;
-  for (const p of points) {
-    if (p.sessions < MIN_SESSIONS_FOR_BEST) continue;
-    const v = (p.bookings / p.sessions) * 100;
-    if (!best || v > best.per100) best = { bucket: p.bucket, per100: v };
-  }
-  return { sessions, bookings, per100, best };
+  return { sessions, bookings, per100 };
 }

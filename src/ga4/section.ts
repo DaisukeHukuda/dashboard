@@ -28,16 +28,13 @@ export function renderTrafficSection(d: TrafficData, periodNote: string): string
   const trend = d.overlay.map(o => ({ bucket: o.bucket, label: o.bucket, bookings: o.bookings, revenue: o.sessions }));
   const insights = d.insights.map(s => `<li style="margin:4px 0">${esc(s)}</li>`).join('');
   const sum = summarizeOverlay(d.overlay);
-  const fmt1 = (v: number | null) => v === null ? '—' : v.toFixed(1);
+  const fmt1 = (v: number | null) => v === null ? '—' : `${v.toFixed(1)}件`;
   const mini = (label: string, value: string) =>
     `<div style="flex:1;min-width:120px;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px"><div style="font-size:11px;color:var(--muted)">${esc(label)}</div><div style="font-size:18px;font-weight:700">${esc(value)}</div></div>`;
-  const bestLine = sum.best
-    ? `<p style="font-size:12px;color:var(--muted);margin:6px 0 0">最も効率が良かった月: ${esc(sum.best.bucket)}（訪問100件あたり ${fmt1(sum.best.per100)}件）</p>`
-    : '';
-  const overlayCard = `<div class="card"><h2>サイト訪問と予約の推移（棒=サイト訪問数 / 線=予約件数）</h2>
-<p style="font-size:13px;color:var(--muted);margin:0 0 10px">棒はWebサイトへの訪問数（GA4セッション）、線は同じ月の予約件数。訪問が増えているのに予約が伸びない月は、サイトの中身や予約導線に改善余地があるサインです。※予約完了はアソビュー側で行われるためGA4では追跡できず、厳密な因果ではなく目安です。</p>
-<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${mini('サイト訪問数', sum.sessions.toLocaleString('ja-JP'))}${mini('予約件数', `${sum.bookings}件`)}${mini('訪問100件あたりの予約件数', `${fmt1(sum.per100)}件`)}</div>
-${renderTrendChart(trend)}${bestLine}</div>`;
+  const overlayCard = `<div class="card"><h2>サイト訪問と参加の推移（棒=サイト訪問数 / 線=参加件数）</h2>
+<p style="font-size:13px;color:var(--muted);margin:0 0 10px">棒はWebサイトへの訪問数（GA4セッション）、線は同じ月にツアーに参加した件数です。訪問が増えているのに参加が伸びない月は、サイトの中身や予約導線に改善余地があるサインです。※参加件数は参加日ベースのため申込みの月とはズレます。合計と比率はGA4の計測データがある月のみで算出しています。予約完了はアソビュー側で行われるためGA4では追跡できず、厳密な因果ではなく目安です。</p>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${mini('サイト訪問数', sum.sessions.toLocaleString('ja-JP'))}${mini('参加件数', `${sum.bookings.toLocaleString('ja-JP')}件`)}${mini('訪問100件あたりの参加件数', fmt1(sum.per100))}</div>
+${renderTrendChart(trend)}</div>`;
   return `<div class="card"><h2>Web流入（GA4）インサイト<span class="p-note">対象: ${periodNote}</span></h2><ul style="margin:0;padding-left:18px;font-size:14px">${insights}</ul></div>
 <div class="card"><h2>流入チャネル構成</h2>${renderDonut(d.channels)}</div>
 ${overlayCard}

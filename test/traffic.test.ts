@@ -32,23 +32,32 @@ describe('computeTrafficOverlay', () => {
 });
 
 describe('summarizeOverlay', () => {
-  it('合計と訪問100件あたり予約件数、最良月（訪問30件以上）を返す', () => {
+  it('合計と訪問100件あたり参加件数を返す', () => {
     const s = summarizeOverlay([
-      { bucket: '2026-05', sessions: 100, bookings: 3 }, // 3.0
-      { bucket: '2026-06', sessions: 50, bookings: 2 },  // 4.0 ← best
-      { bucket: '2026-07', sessions: 10, bookings: 5 },  // 50.0 だが30件未満なので除外
+      { bucket: '2026-05', sessions: 100, bookings: 3 },
+      { bucket: '2026-06', sessions: 50, bookings: 2 },
+      { bucket: '2026-07', sessions: 10, bookings: 5 },
     ]);
     expect(s.sessions).toBe(160);
     expect(s.bookings).toBe(10);
     expect(s.per100).toBeCloseTo(6.25, 2);
-    expect(s.best).toEqual({ bucket: '2026-06', per100: 4 });
   });
-  it('sessions=0 なら per100 と best は null', () => {
+  it('sessions=0 の月は合計・per100の算出対象から除外する（bookingsも含めない）', () => {
+    const s = summarizeOverlay([
+      { bucket: '2026-04', sessions: 0, bookings: 7 }, // GA4計測前：分母なしなので除外
+      { bucket: '2026-05', sessions: 100, bookings: 3 },
+    ]);
+    expect(s.sessions).toBe(100);
+    expect(s.bookings).toBe(3); // 7を含まない
+    expect(s.per100).toBeCloseTo(3, 2);
+  });
+  it('全月 sessions=0 なら per100 は null', () => {
     const s = summarizeOverlay([{ bucket: '2026-05', sessions: 0, bookings: 2 }]);
+    expect(s.sessions).toBe(0);
+    expect(s.bookings).toBe(0);
     expect(s.per100).toBeNull();
-    expect(s.best).toBeNull();
   });
   it('空配列でも壊れない', () => {
-    expect(summarizeOverlay([])).toEqual({ sessions: 0, bookings: 0, per100: null, best: null });
+    expect(summarizeOverlay([])).toEqual({ sessions: 0, bookings: 0, per100: null });
   });
 });
