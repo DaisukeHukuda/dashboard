@@ -22,7 +22,9 @@ describe('renderTrafficSection', () => {
     expect(html).toContain('流入チャネル');
     expect(html).toContain('Organic Search');
     expect(html).toContain('人気ページ');
-    expect(html).toContain('認知→予約');
+    expect(html).toContain('サイト訪問と予約の推移');
+    expect(html).toContain('訪問100件あたり');
+    expect(html).toContain('予約完了はアソビュー側');
     expect(html).toContain('Google検索の検索結果から');
   });
   it('接続済みは見出しに対象期間ラベルが出る', () => {
