@@ -39,17 +39,41 @@ describe('renderTrendChart', () => {
     ]);
     expect(svg).toContain('>8/1<');
   });
-  it('月次ラベル 2026-08 は先頭の年を削って 08 と表示される', () => {
+  it('月次ラベル 2026-08 は年/月で表示される（先頭の場合）', () => {
     const svg = renderTrendChart([
       { bucket: '2026-08', label: '2026-08', bookings: 1, revenue: 1000 },
     ]);
-    expect(svg).toContain('>08<');
+    expect(svg).toContain('>2026/8<');
   });
-  it('週次ラベル 2026-08-10 は先頭の年を削って 08-10 と表示される', () => {
+  it('週次ラベル 2026-08-10 は年/月/日で表示される（先頭の場合）', () => {
     const svg = renderTrendChart([
       { bucket: '2026-08-10', label: '2026-08-10', bookings: 1, revenue: 1000 },
     ]);
-    expect(svg).toContain('>08-10<');
+    expect(svg).toContain('>2026/8/10<');
+  });
+});
+
+describe('renderTrendChart axis labels (year/month)', () => {
+  const pt = (bucket: string, label = bucket) => ({ bucket, label, bookings: 1, revenue: 100 });
+  const labels = (svg: string) => [...svg.matchAll(/text-anchor="middle">([^<]*)<\/text>/g)].map(m => m[1]);
+  it('月次は先頭と年の変わり目に年を付ける', () => {
+    const svg = renderTrendChart([pt('2025-11'), pt('2025-12'), pt('2026-01'), pt('2026-02')]);
+    expect(labels(svg)).toEqual(['2025/11', '12', '2026/1', '2']);
+  });
+  it('週次（label===bucket）は年/月/日 → 月/日', () => {
+    const svg = renderTrendChart([pt('2026-08-10'), pt('2026-08-17')]);
+    expect(labels(svg)).toEqual(['2026/8/10', '8/17']);
+  });
+  it('日次（labelが整形済み）はそのまま', () => {
+    const svg = renderTrendChart([pt('2026-08-01', '8/1'), pt('2026-08-02', '8/2')]);
+    expect(labels(svg)).toEqual(['8/1', '8/2']);
+  });
+  it('間引き後の並びで年境界を判定する', () => {
+    const pts = Array.from({ length: 24 }, (_, i) => { const y = 2024 + Math.floor(i / 12); const m = (i % 12) + 1; return pt(`${y}-${String(m).padStart(2, '0')}`); });
+    const l = labels(renderTrendChart(pts)); // labelEvery=2 → 12ラベル
+    expect(l[0]).toBe('2024/1');
+    expect(l).toContain('2025/1');
+    expect(l.filter(x => x.includes('/')).length).toBe(2);
   });
 });
 

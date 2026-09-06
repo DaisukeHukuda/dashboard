@@ -43,10 +43,20 @@ export function renderTrendChart(points: TrendPoint[], prior?: (number | null)[]
   }
   // x 軸ラベル（間引き）
   const labelEvery = Math.ceil(n / 12) || 1;
+  let lastYear = '';
   points.forEach((p, i) => {
     if (i % labelEvery !== 0) return;
     const x = left + i * step + step / 2;
-    s += `<text x="${x.toFixed(1)}" y="${H - 8}" font-size="10" fill="#6b7280" text-anchor="middle">${escXml(p.label.replace(/^\d{4}-/, ''))}</text>`;
+    let text = p.label;
+    const iso = /^(\d{4})-(\d{2})(?:-(\d{2}))?$/.exec(p.bucket);
+    if (iso && p.label === p.bucket) {
+      const [, y, m, d] = iso;
+      const showYear = y !== lastYear;
+      const md = d ? `${Number(m)}/${Number(d)}` : `${Number(m)}`;
+      text = showYear ? `${y}/${md}` : md;
+      lastYear = y;
+    }
+    s += `<text x="${x.toFixed(1)}" y="${H - 8}" font-size="10" fill="#6b7280" text-anchor="middle">${escXml(text)}</text>`;
   });
   return s + svgClose();
 }
