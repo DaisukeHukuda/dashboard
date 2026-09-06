@@ -14,7 +14,8 @@ export interface TrafficData {
 
 function nvTable(rows: NameValue[], head: string, describe?: (label: string) => string): string {
   const body = rows.map(r => {
-    const note = describe ? `<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(describe(r.label))}</div>` : '';
+    const desc = describe ? describe(r.label) : '';
+    const note = desc ? `<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(desc)}</div>` : '';
     return `<tr><td style="padding:4px 10px">${esc(r.label.slice(0, 30))}${note}</td><td style="padding:4px 10px;text-align:right;vertical-align:top">${r.sessions}</td></tr>`;
   }).join('');
   return `<table style="font-size:13px;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:2px 10px">${esc(head)}</th><th style="padding:2px 10px">セッション</th></tr></thead><tbody>${body}</tbody></table>`;

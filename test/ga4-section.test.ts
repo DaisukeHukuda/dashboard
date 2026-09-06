@@ -31,4 +31,24 @@ describe('renderTrafficSection', () => {
     const connectedFixture = { ...base, connected: true };
     expect(renderTrafficSection(connectedFixture, '2025-09-06〜2026-09-05')).toContain('対象: 2025-09-06〜2026-09-05');
   });
+  it('参照元テーブルには解説が付くが、人気ページ・デバイス・地域テーブルには解説が付かない', () => {
+    const connectedFixture = {
+      ...base, connected: true,
+      sourceMedium: [{ label: 'google / organic', sessions: 10 }],
+      topPages: [{ label: 'google / organic', sessions: 1 }],
+      devices: [{ label: 'google / organic', sessions: 1 }],
+      regions: [{ label: 'google / organic', sessions: 1 }],
+    };
+    const html = renderTrafficSection(connectedFixture, '2025-09-06〜2026-09-05');
+    const occurrences = html.split('Google検索の検索結果から').length - 1;
+    expect(occurrences).toBe(1);
+  });
+  it('分類不能な参照元は解説なし（解説用のdivが付かない）', () => {
+    const connectedFixture = {
+      ...base, connected: true,
+      sourceMedium: [{ label: 'foo / bar', sessions: 10 }],
+    };
+    const html = renderTrafficSection(connectedFixture, '2025-09-06〜2026-09-05');
+    expect(html).not.toContain('font-size:11px;color:var(--muted);margin-top:1px');
+  });
 });

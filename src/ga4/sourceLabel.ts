@@ -1,18 +1,19 @@
 // GA4 の sessionSourceMedium（例 "google / organic"）を、経営者が読める短い日本語にする。
 const SEARCH_ENGINES: Record<string, string> = { google: 'Google', yahoo: 'Yahoo!', bing: 'Bing', duckduckgo: 'DuckDuckGo', baidu: 'Baidu', ecosia: 'Ecosia' };
+const searchEngineName = (s: string, source: string): string => Object.hasOwn(SEARCH_ENGINES, s) ? SEARCH_ENGINES[s] : source;
 
 const SNS: { match: RegExp; name: string }[] = [
-  { match: /^instagram$|instagram\.com$/, name: 'Instagram' },
-  { match: /^facebook$|facebook\.com$/, name: 'Facebook' },
-  { match: /^t\.co$|twitter\.com$|^x\.com$/, name: 'X（旧Twitter）' },
-  { match: /youtube\.com$|^youtube$/, name: 'YouTube' },
-  { match: /^line$|line\.me$/, name: 'LINE' },
+  { match: /^instagram$|(^|\.)instagram\.com$/, name: 'Instagram' },
+  { match: /^facebook$|(^|\.)facebook\.com$/, name: 'Facebook' },
+  { match: /^t\.co$|(^|\.)twitter\.com$|^x\.com$/, name: 'X（旧Twitter）' },
+  { match: /(^|\.)youtube\.com$|^youtube$/, name: 'YouTube' },
+  { match: /^line$|(^|\.)line\.me$/, name: 'LINE' },
 ];
 
 const KNOWN_SITES: { match: RegExp; name: string }[] = [
-  { match: /asoview\.com$/, name: 'アソビュー（予約サイト）' },
-  { match: /jalan\.net$/, name: 'じゃらん' },
-  { match: /tripadvisor/, name: 'トリップアドバイザー' },
+  { match: /(^|\.)asoview\.com$/, name: 'アソビュー（予約サイト）' },
+  { match: /(^|\.)jalan\.net$/, name: 'じゃらん' },
+  { match: /(^|\.)tripadvisor\.[a-z.]+$/, name: 'トリップアドバイザー' },
 ];
 
 export function describeSourceMedium(label: string): string {
@@ -23,8 +24,11 @@ export function describeSourceMedium(label: string): string {
 
   if (s === '(not set)') return '計測できなかった流入';
   if (s === '(direct)' || medium === '(none)') return 'URL直接入力・ブックマーク・LINEなどアプリ内リンク（参照元が取れない流入）';
-  if (medium === 'organic') return `${SEARCH_ENGINES[s] ?? source}検索の検索結果から（広告ではない自然検索）`;
-  if (medium === 'cpc' || medium === 'ppc' || medium.startsWith('paid')) return `${SEARCH_ENGINES[s] ?? source}広告のクリック`;
+  if (medium === 'organic') return `${searchEngineName(s, source)}検索の検索結果から（広告ではない自然検索）`;
+  if (medium === 'cpc' || medium === 'ppc' || medium.startsWith('paid')) {
+    const sns = SNS.find(k => k.match.test(s));
+    return `${sns ? sns.name : searchEngineName(s, source)}広告のクリック`;
+  }
   if (medium === 'email') return 'メール内のリンクから';
 
   const sns = SNS.find(k => k.match.test(s));
@@ -34,5 +38,6 @@ export function describeSourceMedium(label: string): string {
   const site = KNOWN_SITES.find(k => k.match.test(s));
   if (site) return `${site.name}からのリンク`;
   if (medium === 'referral') return `他サイト（${source}）のリンクから`;
-  return `${source} / ${rawMedium.trim()} からの流入`;
+  if (!medium) return `${source} からの流入`;
+  return '';
 }

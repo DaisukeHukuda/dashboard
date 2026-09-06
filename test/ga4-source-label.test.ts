@@ -17,7 +17,14 @@ describe('describeSourceMedium', () => {
     ['newsletter / email', 'メール内のリンクから'],
     ['someapp / social', 'SNS（someapp）のリンクから'],
     ['(not set)', '計測できなかった流入'],
-    ['foo / bar', 'foo / bar からの流入'],
+    ['foo / bar', ''],
+    ['constructor / organic', 'constructor検索の検索結果から（広告ではない自然検索）'],
+    ['notinstagram.com / referral', '他サイト（notinstagram.com）のリンクから'],
+    ['example.com', 'example.com からの流入'],
+    ['(不明)', '(不明) からの流入'],
+    ['instagram / paid_social', 'Instagram広告のクリック'],
+    ['nottripadvisor.co.jp / referral', '他サイト（nottripadvisor.co.jp）のリンクから'],
+    ['tripadvisor.co.jp / referral', 'トリップアドバイザーからのリンク'],
   ];
   for (const [input, expected] of cases) {
     it(`${input} → ${expected}`, () => { expect(describeSourceMedium(input)).toBe(expected); });
