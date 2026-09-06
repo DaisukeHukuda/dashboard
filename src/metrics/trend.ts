@@ -6,7 +6,7 @@ export interface TrendPoint { bucket: string; label: string; bookings: number; r
 export type Granularity = 'month' | 'week' | 'day';
 
 // その日を含む週の月曜日（JST暦日として計算）を 'YYYY-MM-DD' で返す
-function weekStart(ymd: string): string {
+export function weekStart(ymd: string): string {
   const d = new Date(`${ymd}T00:00:00Z`);
   const dow = d.getUTCDay(); // 0=日
   const backToMon = (dow + 6) % 7; // 月=0,...,日=6
