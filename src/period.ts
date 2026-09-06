@@ -53,8 +53,8 @@ export function spanDays(p: Period): number {
 // 比較期間。month/短いcustom/last12/year/all は -12ヶ月（前年同期）、last24 は -24ヶ月、366日超の custom は期間長ぶん過去へ。
 export function priorPeriod(p: Period): Period {
   if (p.kind === 'custom' && spanDays(p) > 366) {
-    const months = Math.round(daysBetweenYmd(p.start, p.end) / 30.5);
-    return { start: addMonthsToYmd(p.start, -months), end: addMonthsToYmd(p.end, -months), label: `${p.label}（前期間）`, kind: p.kind };
+    const n = spanDays(p);
+    return { start: addDaysToYmd(p.start, -n), end: addDaysToYmd(p.end, -n), label: `${p.label}（前期間）`, kind: p.kind };
   }
   const months = p.kind === 'last24' ? 24 : 12;
   return { start: addMonthsToYmd(p.start, -months), end: addMonthsToYmd(p.end, -months), label: `${p.label}（前期間）`, kind: p.kind };

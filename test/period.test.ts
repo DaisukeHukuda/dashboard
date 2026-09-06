@@ -135,11 +135,21 @@ describe('periodQuery / spanDays / comparisonLabel / priorPeriod', () => {
     expect(comparisonLabel(short)).toBe('前年同期間比');
     const long = resolvePeriod('custom', '2026-09-06', '2024-01-01', '2025-12-31'); // 731日
     expect(priorPeriod(long).end).toBe('2023-12-31');
-    expect(priorPeriod(long).start).toBe('2022-01-01');
+    expect(priorPeriod(long).start).toBe('2021-12-31');
     expect(comparisonLabel(long)).toBe('前期間比');
   });
   it('既存 kind のラベル', () => {
     expect(comparisonLabel(resolvePeriod('last12', '2026-09-06'))).toBe('前年比');
     expect(comparisonLabel(resolvePeriod('last24', '2026-09-06'))).toBe('前24ヶ月比');
+  });
+});
+
+describe('priorPeriod: 366日超の custom は日数ぶんシフト', () => {
+  it('366日超の custom は日数ぶんシフトし、現行期間と重ならない', () => {
+    const p = resolvePeriod('custom', '2026-09-06', '2025-01-01', '2026-02-04'); // 400日
+    const q = priorPeriod(p);
+    expect(spanDays(q)).toBe(spanDays(p));           // 同じ長さ
+    expect(q.end).toBe('2024-12-31');                 // 現行開始日の前日で終わる（重複なし・隙間なし）
+    expect(q.start).toBe('2023-11-28');
   });
 });
