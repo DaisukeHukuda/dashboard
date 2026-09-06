@@ -172,4 +172,14 @@ describe('dashboard rendering', () => {
     const long = renderDashboard({ ...base, period: resolvePeriod('last12', '2026-09-06'), granularity: 'month' });
     expect(long).not.toContain('>日次<');
   });
+
+  it('戦略インサイトはグループ見出し付きで、hintはmutedで表示', () => {
+    const html = renderDashboard({ ...base, insights: [
+      { title: '売上の要因', items: [{ text: '売上 100,000円', hint: '→ 変化は主に客数（件数）によるもの' }] },
+      { title: 'リピート', items: [{ text: 'リピート率 50%' }] },
+    ] });
+    expect(html).toContain('<div class="ins-title">売上の要因</div>');
+    expect(html).toContain('<div class="ins-title">リピート</div>');
+    expect(html).toContain('<span class="ins-hint">→ 変化は主に客数（件数）によるもの</span>');
+  });
 });

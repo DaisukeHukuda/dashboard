@@ -50,6 +50,8 @@ body.reorder #reorderBar{position:sticky;top:0;z-index:10;display:flex;gap:10px;
 .side a{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;text-decoration:none;color:var(--ink);font-size:14px;min-height:44px;border:1px solid transparent}
 .side a.active{background:#fff;font-weight:700;border:1px solid var(--line)}
 .dot{width:10px;height:10px;border-radius:50%;flex:none}
+.ins-title{font-weight:700;font-size:13px;margin:8px 0 2px}
+.ins-hint{color:var(--muted);margin-left:6px}
 main{flex:1;min-width:0}
 section[data-media="booking"] .card{border-left:4px solid var(--m-booking)}
 section[data-media="web"] .card{border-left:4px solid var(--m-web)}
@@ -144,7 +146,9 @@ export function renderDashboard(d: DashboardData): string {
     .concat(d.courses.map(c => `<option value="${esc(c)}"${c === d.selectedCourse ? ' selected' : ''}>${esc(c)}</option>`))
     .join('');
 
-  const insightList = d.insights.flatMap(g => g.items).map(i => `<li style="margin:4px 0">${esc(i.text)}${i.hint ? ` ${esc(i.hint)}` : ''}</li>`).join('');
+  const insightList = d.insights.map(g =>
+    `<div class="ins-title">${esc(g.title)}</div><ul style="margin:0;padding-left:18px;font-size:14px">${g.items.map(i => `<li style="margin:4px 0">${esc(i.text)}${i.hint ? `<span class="ins-hint">${esc(i.hint)}</span>` : ''}</li>`).join('')}</ul>`
+  ).join('');
 
   const gToggle = (g: Granularity, label: string) => {
     const params = new URLSearchParams({ ...periodQuery(d.period), view: d.view, g });
@@ -157,7 +161,7 @@ export function renderDashboard(d: DashboardData): string {
 
   const sections: Record<SectionId, string> = {
     kpi: `<div class="card"><h2>KPI サマリー${pnote(range)}</h2><div style="display:flex;gap:10px;flex-wrap:wrap">${kpis}</div></div>`,
-    insights: `<div class="card"><h2>戦略インサイト${pnote(range)}</h2><ul style="margin:0;padding-left:18px;font-size:14px">${insightList}</ul></div>`,
+    insights: `<div class="card"><h2>戦略インサイト${pnote(range)}</h2><div>${insightList}</div></div>`,
     trend: `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
 <h2 style="margin:0">売上・予約トレンド（棒=売上 / 線=件数）${pnote(range)}</h2>
 <span>${gToggles}</span></div>
