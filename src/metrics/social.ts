@@ -5,7 +5,7 @@ import { ymOf } from '../util.js';
 export interface SocialPoint { bucket: string; posts: number; bookings: number; }
 
 // ISO timestamp（+0900等）を JST 'YYYY-MM-DD' へ
-function jstDateOfIso(ts: string): string {
+export function jstDateOfIso(ts: string): string {
   const d = new Date(ts);
   if (Number.isNaN(d.getTime())) return ts.slice(0, 10);
   const j = new Date(d.getTime() + 9 * 60 * 60 * 1000);

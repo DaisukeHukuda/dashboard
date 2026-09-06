@@ -29,7 +29,7 @@ import { recordFollowerSnapshot, getFollowerSeries, ensureFollowerSnapshot } fro
 import { computeSocialOverlay } from './metrics/social.js';
 import { buildIgInsights } from './ig/insights.js';
 import type { SocialData } from './ig/section.js';
-import type { IgSeriesPoint, IgPostRow } from './ig/types.js';
+import type { IgSeriesPoint, IgPostRow, IgMedia } from './ig/types.js';
 import { applyOrder, isValidOrder, resolveView, SECTION_ORDER_KEY } from './sections.js';
 
 const SESSION_TTL = 7 * 24 * 3600;
@@ -160,7 +160,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
 
       // 投稿一覧＋上位insightsも独立
       let posts: IgPostRow[] = [];
-      let media: { timestamp: string }[] = [];
+      let media: IgMedia[] = [];
       try {
         const mediaJson = await igGet(env, `${uid}/media`, { fields: 'id,caption,timestamp,media_type,permalink', limit: '25' });
         const mediaList = parseMediaList(mediaJson);
@@ -176,7 +176,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
       } catch { /* media失敗は無視 */ }
 
       const overlay = computeSocialOverlay(all, period, media);
-      social = { followers, reach, posts, overlay, insights: buildIgInsights({ followers, posts, overlay }), connected: true };
+      social = { followers, reach, posts, overlay, insights: buildIgInsights({ period, followers, reach, posts, media, overlay }), connected: true };
     } catch { social = emptySocial; }
   }
 

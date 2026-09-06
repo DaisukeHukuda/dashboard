@@ -15,7 +15,7 @@ describe('renderSocialSection', () => {
       followers: [{ date: '2024-06-01', count: 1000 }, { date: '2024-07-01', count: 1080 }],
       posts: [{ id: 'm1', caption: 'SUP日和', timestamp: '2024-07-10T09:00:00+0900', mediaType: 'IMAGE', permalink: 'p', reach: 500, likes: 40, comments: 5, saved: 12, engagement: 57 }],
       overlay: [{ bucket: '2024-06', posts: 4, bookings: 10 }],
-      insights: ['フォロワーは蓄積開始から +80（1000 → 1080）。'],
+      insights: [{ title: 'フォロワー', items: [{ text: '現在 1,080人。蓄積開始（2024-06-01）から +80人（1日あたり +2.7）' }] }],
     };
     const html = renderSocialSection(connectedFixture, '2025-09-06〜2026-09-05');
     expect(html).toContain('フォロワー推移');
