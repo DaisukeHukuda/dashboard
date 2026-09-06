@@ -110,7 +110,7 @@ ${sub ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(sub
 
 export interface DashboardData {
   period: Period; kpi: Kpi; trend: TrendPoint[]; heatmap: Heatmap;
-  courses: string[]; selectedCourse: string; cohorts: CohortRow[];
+  courses: string[]; selectedCourse: string; cohorts: CohortRow[]; cohortInsights: InsightGroup[];
   courseRows: CourseRow[]; sourceRows: CourseRow[]; insights: InsightGroup[];
   granularity: Granularity; trendPrior: (number | null)[];
   traffic: TrafficData;
@@ -192,6 +192,8 @@ ${hiddenInputs(periodQuery(d.period))}
 </form>${renderHeatmap(d.heatmap)}</div>`,
     cohort: `<div class="card"><h2>リピーター・コホート再訪率（初回月別・全期間）${pnote('全期間')}</h2>
 <div style="font-size:13px;color:var(--muted);margin:0 0 8px">行=初めて参加した月、列=その何ヶ月後に再び参加した割合。灰色は未来。スマホでは要約（3ヶ月以内／1年後の再訪率）を表示</div>
+<div>${renderInsightGroups(d.cohortInsights)}</div>
+<div style="font-size:12px;color:var(--muted);margin:8px 0">電話番号が同じ人を同一人物として数えています。家族で予約者が変わると別人になります。</div>
 ${renderCohortGrid(d.cohorts, d.todayYm)}</div>`,
     course: `<div class="card"><h2>コース別内訳${pnote(range)}</h2>${renderCourseBars(d.courseRows)}</div>`,
     source: `<div class="card"><h2>流入経路（お客様の自己申告）${pnote(range)}</h2>

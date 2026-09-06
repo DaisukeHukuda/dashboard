@@ -35,6 +35,7 @@ const base: DashboardData = {
   courses: ['SUP体験', 'ロングSUP'],
   selectedCourse: '',
   cohorts: [],
+  cohortInsights: [],
   courseRows: [],
   sourceRows: [],
   insights: [],
@@ -117,6 +118,35 @@ describe('dashboard rendering', () => {
     const html = renderDashboard({ ...base, cohorts: [{ cohort: '2024-01', size: 10, retention: Array(13).fill(5), within3: 4, yearLater: 2 }] });
     expect(html).toContain('cohort-pc');
     expect(html).toContain('cohort-sp');
+  });
+
+  it('コホートカードにインサイトの見出しと同一人物注記を表の前に表示する', () => {
+    const html = renderDashboard({
+      ...base,
+      cohorts: [{ cohort: '2024-01', size: 10, retention: Array(13).fill(5), within3: 4, yearLater: 2 }],
+      cohortInsights: [{ title: 'リピートの全体像', items: [{ text: '初参加 20人のうち、2回目以降も来た人 5人（25%）', hint: '→ 5人に1人以上が戻っている' }] }],
+    });
+    expect(html).toContain('リピートの全体像');
+    expect(html).toContain('初参加 20人のうち、2回目以降も来た人 5人（25%）');
+    expect(html).toContain('→ 5人に1人以上が戻っている');
+    const note = '電話番号が同じ人を同一人物として数えています。家族で予約者が変わると別人になります。';
+    expect(html).toContain(note);
+    const insightPos = html.indexOf('リピートの全体像');
+    const notePos = html.indexOf(note);
+    const gridPos = html.indexOf('class="cohort-wrap cohort-pc"');
+    expect(insightPos).toBeGreaterThan(-1);
+    expect(notePos).toBeGreaterThan(insightPos);
+    expect(gridPos).toBeGreaterThan(notePos);
+  });
+
+  it('コホートインサイトが空でも注記と表を表示する', () => {
+    const html = renderDashboard({
+      ...base,
+      cohorts: [{ cohort: '2024-01', size: 10, retention: Array(13).fill(5), within3: 4, yearLater: 2 }],
+      cohortInsights: [],
+    });
+    expect(html).toContain('電話番号が同じ人を同一人物として数えています');
+    expect(html).toContain('class="cohort-wrap cohort-pc"');
   });
 
   it('bookingsビューは7ブロックのみ・並び替えUIなし', () => {

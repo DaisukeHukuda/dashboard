@@ -11,6 +11,7 @@ import { computeCohorts } from './metrics/cohort.js';
 import { computeCourseBreakdown } from './metrics/course.js';
 import { computeSourceBreakdown } from './metrics/source.js';
 import { buildInsights } from './metrics/insights.js';
+import { buildCohortInsights } from './metrics/cohortInsights.js';
 import { runReport } from './ga4/client.js';
 import { getAccessToken } from './ga4/auth.js';
 import {
@@ -84,6 +85,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
   const sourceRows = computeSourceBreakdown(all, period);
 
   const insights = buildInsights({ all, period, kpi, heatmap, trend, courseRows, sourceRows });
+  const cohortInsights = buildCohortInsights({ all, cohorts, today });
 
   // GA4 未設定/失敗時は Phase 1 を退行させず未接続表示にフォールバック
   const emptyTraffic: TrafficData = { channels: [], sourceMedium: [], topPages: [], devices: [], regions: [], overlay: [], insights: [], connected: false, sourceSeries: null, pageSeries: null };
@@ -187,7 +189,7 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
   } catch { /* 並び順が読めなくても既定順で表示する */ }
 
   return html(renderDashboard({
-    period, kpi, trend, heatmap, courses, selectedCourse, cohorts, courseRows, sourceRows, insights, granularity: gran, trendPrior, traffic, social, sectionOrder, view,
+    period, kpi, trend, heatmap, courses, selectedCourse, cohorts, cohortInsights, courseRows, sourceRows, insights, granularity: gran, trendPrior, traffic, social, sectionOrder, view,
     todayYm: ymOf(today),
   }));
 }
