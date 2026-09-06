@@ -24,3 +24,22 @@ describe('worker smoke', () => {
     expect(await res.text()).toContain('Disallow: /');
   });
 });
+
+describe('favicon', () => {
+  it('serves /favicon.svg without auth', async () => {
+    const res = await worker.fetch(new Request('https://x/favicon.svg'), env);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('image/svg+xml');
+    expect(res.headers.get('cache-control')).toContain('max-age');
+    expect(await res.text()).toContain('<svg');
+  });
+  it('redirects /favicon.ico to /favicon.svg', async () => {
+    const res = await worker.fetch(new Request('https://x/favicon.ico'), env);
+    expect(res.status).toBe(302);
+    expect(res.headers.get('location')).toBe('/favicon.svg');
+  });
+  it('links the icon from the login page', async () => {
+    const res = await worker.fetch(new Request('https://x/'), env);
+    expect(await res.text()).toContain('<link rel="icon" type="image/svg+xml" href="/favicon.svg">');
+  });
+});

@@ -3,6 +3,7 @@ import { verifySession } from './auth.js';
 import { handleLogin, handleLogout, handleHome, handleSectionOrder } from './handlers.js';
 import { loginPage } from './pages.js';
 import { ensureFollowerSnapshot } from './ig/followers.js';
+import { FAVICON_SVG } from './favicon.js';
 
 export interface Env {
   DATA: KV;
@@ -32,6 +33,10 @@ async function handle(req: Request, env: Env): Promise<Response> {
   if (path === '/robots.txt') {
     return new Response('User-agent: *\nDisallow: /\n', { headers: { 'content-type': 'text/plain; charset=utf-8' } });
   }
+  if (path === '/favicon.svg') {
+    return new Response(FAVICON_SVG, { headers: { 'content-type': 'image/svg+xml; charset=utf-8', 'cache-control': 'public, max-age=86400' } });
+  }
+  if (path === '/favicon.ico') return new Response(null, { status: 302, headers: { location: '/favicon.svg' } });
   if (path === '/login' && method === 'POST') return handleLogin(req, env);
   if (path === '/logout') return handleLogout();
 

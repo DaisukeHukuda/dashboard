@@ -28,6 +28,7 @@ export function layout(title: string, body: string): string {
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
 :root{--bg:#f5f6f8;--card:#fff;--ink:#1f2937;--muted:#6b7280;--accent:#1e3a5f;--line:#e5e7eb}
 *{box-sizing:border-box}
