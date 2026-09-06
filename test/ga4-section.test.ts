@@ -16,7 +16,7 @@ describe('renderTrafficSection', () => {
       sourceMedium: [{ label: 'google / organic', sessions: 10 }],
       topPages: [{ label: '/tour', sessions: 20 }],
       overlay: [{ bucket: '2024-06', sessions: 100, bookings: 5 }],
-      insights: ['流入の最大チャネルは Organic Search（全体の 100%）。'],
+      insights: [{ title: 'テスト', items: [{ text: '流入の最大チャネルは Organic Search（全体の 100%）。' }] }],
     };
     const html = renderTrafficSection(connectedFixture, '2025-09-06〜2026-09-05');
     expect(html).toContain('流入チャネル');

@@ -1,7 +1,8 @@
 import type { NameValue } from './reports.js';
 import type { TrafficPoint } from '../metrics/traffic.js';
 import { summarizeOverlay } from '../metrics/traffic.js';
-import { esc } from '../pages.js';
+import type { InsightGroup } from '../metrics/insights.js';
+import { esc, renderInsightGroups } from '../pages.js';
 import { renderDonut } from '../charts/donut.js';
 import { renderTrendChart } from '../charts/line.js';
 import { describeSourceMedium } from './sourceLabel.js';
@@ -9,7 +10,7 @@ import { describeSourceMedium } from './sourceLabel.js';
 export interface TrafficData {
   channels: NameValue[]; sourceMedium: NameValue[]; topPages: NameValue[];
   devices: NameValue[]; regions: NameValue[]; overlay: TrafficPoint[];
-  insights: string[]; connected: boolean;
+  insights: InsightGroup[]; connected: boolean;
 }
 
 function nvTable(rows: NameValue[], head: string, describe?: (label: string) => string): string {
@@ -27,7 +28,7 @@ export function renderTrafficSection(d: TrafficData, periodNote: string): string
   }
   // 重ね描きは既存 renderTrendChart を流用：棒=セッション相当としてTrendPoint化（revenue枠にsessions、bookingsをそのまま）
   const trend = d.overlay.map(o => ({ bucket: o.bucket, label: o.bucket, bookings: o.bookings, revenue: o.sessions }));
-  const insights = d.insights.map(s => `<li style="margin:4px 0">${esc(s)}</li>`).join('');
+  const insights = renderInsightGroups(d.insights);
   const sum = summarizeOverlay(d.overlay);
   const fmt1 = (v: number | null) => v === null ? '—' : `${v.toFixed(1)}件`;
   const mini = (label: string, value: string) =>
@@ -36,7 +37,7 @@ export function renderTrafficSection(d: TrafficData, periodNote: string): string
 <p style="font-size:13px;color:var(--muted);margin:0 0 10px">棒はWebサイトへの訪問数（GA4セッション）、線は同じ月にツアーに参加した件数です。訪問が増えているのに参加が伸びない月は、サイトの中身や予約導線に改善余地があるサインです。※参加件数は参加日ベースのため申込みの月とはズレます。合計と比率はGA4の計測データがある月のみで算出しています。予約完了はアソビュー側で行われるためGA4では追跡できず、厳密な因果ではなく目安です。</p>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${mini('サイト訪問数', sum.sessions.toLocaleString('ja-JP'))}${mini('参加件数', `${sum.bookings.toLocaleString('ja-JP')}件`)}${mini('訪問100件あたりの参加件数', fmt1(sum.per100))}</div>
 ${renderTrendChart(trend)}</div>`;
-  return `<div class="card"><h2>Web流入（GA4）インサイト<span class="p-note">対象: ${periodNote}</span></h2><ul style="margin:0;padding-left:18px;font-size:14px">${insights}</ul></div>
+  return `<div class="card"><h2>Web流入（GA4）インサイト<span class="p-note">対象: ${periodNote}</span></h2>${insights}</div>
 <div class="card"><h2>流入チャネル構成</h2>${renderDonut(d.channels)}</div>
 ${overlayCard}
 <div class="card"><h2>参照元/メディア Top</h2>${nvTable(d.sourceMedium, '参照元/メディア', describeSourceMedium)}</div>

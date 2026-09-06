@@ -2,7 +2,7 @@ import type { Env } from './index.js';
 import { createSession, constantEquals } from './auth.js';
 import { loginPage, renderDashboard } from './pages.js';
 import { getHistory } from './data.js';
-import { resolvePeriod } from './period.js';
+import { resolvePeriod, priorPeriod } from './period.js';
 import { jstToday, addDaysToYmd } from './util.js';
 import { computeKpi } from './metrics/kpi.js';
 import { computeTrend, priorYearSeries, resolveGranularity } from './metrics/trend.js';
@@ -84,22 +84,22 @@ export async function handleHome(url: URL, env: Env, _username: string): Promise
     try {
       await getAccessToken(env);
       const range = { start: period.start, end: endClamped };
-      const [ch, sm, tp, dv, rg, ds] = await Promise.all([
-        runReport(env, CHANNEL_SPEC, range),
-        runReport(env, SOURCE_MEDIUM_SPEC, range),
-        runReport(env, TOP_PAGES_SPEC, range),
-        runReport(env, DEVICE_SPEC, range),
-        runReport(env, REGION_SPEC, range),
-        runReport(env, DAILY_SESSIONS_SPEC, range),
+      const comparable = period.kind !== 'all';
+      const prevP = priorPeriod(period);
+      const prevRange = { start: prevP.start, end: clampEnd(prevP.end, today) };
+      const [ch, sm, tp, dv, rg, ds, pch, psm, pds] = await Promise.all([
+        runReport(env, CHANNEL_SPEC, range), runReport(env, SOURCE_MEDIUM_SPEC, range), runReport(env, TOP_PAGES_SPEC, range),
+        runReport(env, DEVICE_SPEC, range), runReport(env, REGION_SPEC, range), runReport(env, DAILY_SESSIONS_SPEC, range),
+        comparable ? runReport(env, CHANNEL_SPEC, prevRange) : Promise.resolve(null),
+        comparable ? runReport(env, SOURCE_MEDIUM_SPEC, prevRange) : Promise.resolve(null),
+        comparable ? runReport(env, DAILY_SESSIONS_SPEC, prevRange) : Promise.resolve(null),
       ]);
-      const channels = toNameValues(ch), devices = toNameValues(dv);
+      const channels = toNameValues(ch), devices = toNameValues(dv), regions = toNameValues(rg), topPages = toNameValues(tp), sourceMedium = toNameValues(sm);
       const overlay = computeTrafficOverlay(all, period, toDailySessions(ds));
-      traffic = {
-        channels, sourceMedium: toNameValues(sm), topPages: toNameValues(tp),
-        devices, regions: toNameValues(rg), overlay,
-        insights: buildGa4Insights({ channels, devices, overlay }),
-        connected: true,
-      };
+      const prevOverlay = pds ? computeTrafficOverlay(all, prevP, toDailySessions(pds)) : null;
+      traffic = { channels, sourceMedium, topPages, devices, regions, overlay,
+        insights: buildGa4Insights({ period, channels, prevChannels: pch ? toNameValues(pch) : null, sourceMedium, prevSourceMedium: psm ? toNameValues(psm) : null, devices, regions, topPages, overlay, prevOverlay }),
+        connected: true };
     } catch { traffic = emptyTraffic; }
   }
 

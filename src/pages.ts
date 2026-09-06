@@ -18,6 +18,12 @@ export function esc(s: string): string {
   return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 }
 
+export function renderInsightGroups(groups: InsightGroup[]): string {
+  return groups.map(g =>
+    `<div class="ins-title">${esc(g.title)}</div><ul style="margin:0;padding-left:18px;font-size:14px">${g.items.map(i => `<li style="margin:4px 0">${esc(i.text)}${i.hint ? `<span class="ins-hint">${esc(i.hint)}</span>` : ''}</li>`).join('')}</ul>`
+  ).join('');
+}
+
 export function layout(title: string, body: string): string {
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -146,9 +152,7 @@ export function renderDashboard(d: DashboardData): string {
     .concat(d.courses.map(c => `<option value="${esc(c)}"${c === d.selectedCourse ? ' selected' : ''}>${esc(c)}</option>`))
     .join('');
 
-  const insightList = d.insights.map(g =>
-    `<div class="ins-title">${esc(g.title)}</div><ul style="margin:0;padding-left:18px;font-size:14px">${g.items.map(i => `<li style="margin:4px 0">${esc(i.text)}${i.hint ? `<span class="ins-hint">${esc(i.hint)}</span>` : ''}</li>`).join('')}</ul>`
-  ).join('');
+  const insightList = renderInsightGroups(d.insights);
 
   const gToggle = (g: Granularity, label: string) => {
     const params = new URLSearchParams({ ...periodQuery(d.period), view: d.view, g });
