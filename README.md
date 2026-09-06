@@ -6,6 +6,10 @@ Sup! Sup! マーケティング分析ダッシュボード（Phase 1）。
 ## 表示ビュー
 左サイドバー（またはスマホではタブ）でメディア別に表示を切り替えられる。URLクエリ `?view=bookings|web|sns|all` で指定（既定は `bookings`＝予約分析）。`web`=GA4のWebサイト分析、`sns`=Instagram分析、`all`=全ブロック表示。
 
+## 期間・粒度パラメータ
+対象期間は `?period=` で指定する。`last12`（既定・直近12ヶ月）／`last24`（直近24ヶ月）／`all`（全期間）／`YYYY`（年指定、例 `2026`）／`YYYY-MM`（月指定、例 `2026-08`）／`custom`（`&from=YYYY-MM-DD&to=YYYY-MM-DD` と併用、任意期間）。不正な値は既定の `last12` にフォールバックする。
+トレンドの表示粒度は `?g=month|week|day` で指定する。期間が92日以下なら既定は `day`（`day/week/month` すべて選択可）、それより長い期間は既定 `month`（`week/month` のみ選択可）。許容外の値を指定した場合は既定粒度にフォールバックする。
+
 ## セットアップ
 1. `npm install`
 2. `npx wrangler kv namespace create DASH` → 出力の id を `wrangler.toml` の DASH に貼る
