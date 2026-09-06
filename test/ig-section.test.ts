@@ -19,6 +19,11 @@ describe('renderSocialSection', () => {
     };
     const html = renderSocialSection(connectedFixture, '2025-09-06〜2026-09-05');
     expect(html).toContain('フォロワー推移');
+    expect(html).toContain('毎日1:00に自動記録');
+    expect(html).toContain('現在');
+    expect(html).toContain('蓄積開始からの増減');
+    expect(html).toContain('直近30日の増減');
+    expect(html).toContain('class="diff-bar"');
     expect(html).toContain('投稿別エンゲージメント');
     expect(html).toContain('投稿 × 予約');
     expect(html).toContain('SUP日和');
