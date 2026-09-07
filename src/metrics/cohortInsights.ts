@@ -89,7 +89,7 @@ export function buildCohortInsights(input: { all: HistoryRecord[]; cohorts: Coho
         else c++;
       }
       const [pa, pb, pc] = distributePercents([a, b, c], M);
-      const hint = pa > pb ? '→ 同じシーズン中に戻る人が多い' : pb > pa ? '→ 翌シーズンに戻る傾向' : undefined;
+      const hint = a > b ? '→ 同じシーズン中に戻る人が多い' : b > a ? '→ 翌シーズンに戻る傾向' : undefined; // 丸め後ではなく実数で比較（同率で断定しない）
       groups.push({ title: '戻ってくるタイミング', items: [{ text: `再訪した人の内訳: 3ヶ月以内 ${pa}%／翌年の同時期（11〜13ヶ月後） ${pb}%／それ以外 ${pc}%`, hint }] });
     }
   }
@@ -129,14 +129,18 @@ export function buildCohortInsights(input: { all: HistoryRecord[]; cohorts: Coho
       e.year += c.yearLater;
       byMonth.set(mm, e);
     }
-    const eligible = [...byMonth.entries()].filter(([, v]) => v.size >= 40).map(([mm, v]) => ({ mm, rate: pct(v.year, v.size) }));
+    const eligible = [...byMonth.entries()].filter(([, v]) => v.size >= 40).map(([mm, v]) => ({ mm, rate: pct(v.year, v.size), size: v.size, year: v.year }));
     if (eligible.length >= 2) {
       const hi = eligible.reduce((a, b) => (b.rate > a.rate ? b : a));
       const lo = eligible.reduce((a, b) => (b.rate < a.rate ? b : a));
       // 全対象月の割合が同じ（比較材料がない）場合はグループごと省略する
       if (hi.mm !== lo.mm) {
+        // 差が標本誤差の範囲内なら「差は小さい」とする: 閾値 = max(5pt, 3×SE)。SE はプール率 p の2標本標準誤差
+        const pooled = (hi.year + lo.year) / (hi.size + lo.size);
+        const se = Math.sqrt(pooled * (1 - pooled) * (1 / hi.size + 1 / lo.size)) * 100;
+        const threshold = Math.max(5, 3 * se);
         let hint: string;
-        if (hi.rate - lo.rate < 5) hint = '→ 初回の時期による差は小さい';
+        if (hi.rate - lo.rate < threshold) hint = '→ 初回の時期による差は小さい';
         else if ((lo.mm === 7 || lo.mm === 8) && hi.mm !== 7 && hi.mm !== 8) hint = '→ 繁忙期に初めて来た人ほど翌年に戻りにくい傾向';
         else hint = '→ 初回の時期で翌年の戻りやすさに差がある';
         groups.push({ title: '初回月による戻りやすさ', items: [{ text: `初回が${hi.mm}月の人は翌年 ${hi.rate}%、${lo.mm}月の人は ${lo.rate}%（1年後に戻った割合）`, hint }] });
@@ -154,7 +158,7 @@ export function buildCohortInsights(input: { all: HistoryRecord[]; cohorts: Coho
     const prevEnd = `${thisYear - 1}-${mmdd}`;
     const prev = [...first.values()].filter(d => d >= prevStart && d <= prevEnd).length;
     if (prev >= 20) {
-      const diff = pct(cur - prev, prev);
+      const diff = Math.round((cur / prev - 1) * 100); // 表示（signedPct）と同じ式で計算し、数字と示唆がズレないようにする
       const hint = diff >= 10 ? '→ 新規客は増えている' : diff <= -10 ? '→ 新規客は減っている' : '→ 新規客はほぼ横ばい';
       groups.push({ title: '直近の新規客', items: [{ text: `今年の初参加 ${cur}人（去年の同時期 ${prev}人、${signedPct(cur / prev)}）`, hint }] });
     }

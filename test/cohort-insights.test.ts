@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildCohortInsights } from '../src/metrics/cohortInsights.js';
 import type { HistoryRecord } from '../src/types.js';
-import type { CohortRow } from '../src/metrics/cohort.js';
+import { computeCohorts, type CohortRow } from '../src/metrics/cohort.js';
 import { addMonthsToYmd } from '../src/util.js';
 
 const r = (date: string, phoneHash: string): HistoryRecord => ({ date, course: 'A', pax: 1, amount: 1, status: '参加済', phoneHash });
@@ -249,7 +249,7 @@ describe('buildCohortInsights: 4. 初回月による戻りやすさ', () => {
   });
 
   it('差が5pt以上(境界)で繁忙期(7/8)が絡まなければ「差がある」hint', () => {
-    const cohorts = [row('2023-03', 100, 50), row('2023-05', 100, 45)]; // 50% vs 45%（差5pt）
+    const cohorts = [row('2023-03', 2000, 1000), row('2023-05', 2000, 900)]; // 50% vs 45%（差5pt・母集団が大きく 3×SE≈4.7pt < 5pt）
     const g = find(build([], cohorts), '初回月による戻りやすさ')!;
     expect(g.items[0].hint).toBe('→ 初回の時期で翌年の戻りやすさに差がある');
   });
@@ -315,5 +315,45 @@ describe('buildCohortInsights: 5. 直近の新規客', () => {
   it('prev<20ならグループを省略する', () => {
     const all = firstOnly(Array.from({ length: 19 }, (_, i) => `2025-0${(i % 8) + 1}-0${(i % 8) + 1}`), 'p');
     expect(find(build(all), '直近の新規客')).toBeUndefined();
+  });
+});
+
+describe('buildCohortInsights: 再レビュー後の境界', () => {
+  const r = (date: string, phoneHash: string): HistoryRecord => ({ date, course: 'A', pax: 1, amount: 1, status: '参加済', phoneHash });
+  it('タイミングの hint は実数で比較し、丸めで34/33に割れても同率なら hint なし', () => {
+    const all: HistoryRecord[] = [];
+    for (let i = 0; i < 5; i++) { all.push(r('2023-05-01', `a${i}`), r('2023-07-01', `a${i}`)); } // +2 → 3ヶ月以内
+    for (let i = 0; i < 5; i++) { all.push(r('2023-05-01', `b${i}`), r('2024-05-01', `b${i}`)); } // +12 → 翌年
+    for (let i = 0; i < 5; i++) { all.push(r('2023-05-01', `c${i}`), r('2023-11-01', `c${i}`)); } // +6 → それ以外
+    for (let i = 0; i < 10; i++) all.push(r('2023-05-01', `n${i}`));
+    const g = buildCohortInsights({ all, cohorts: computeCohorts(all, 13), today: '2026-09-07' }).find(x => x.title === '戻ってくるタイミング')!;
+    expect(g.items[0].text).toContain('3ヶ月以内 34%');
+    expect(g.items[0].hint).toBeUndefined();
+  });
+  it('初回月比較: 小さな母集団同士の差（5pt以上でも3×SE未満）は「差は小さい」', () => {
+    // 6月 40人中5人(13%) vs 9月 40人中1人(3%)。p=0.075, SE≈5.9pt → 閾値≈17.7pt > 10pt
+    const cohorts = [
+      { cohort: '2024-06', size: 40, retention: [], within3: 0, yearLater: 5 },
+      { cohort: '2024-09', size: 40, retention: [], within3: 0, yearLater: 1 },
+    ];
+    const g = buildCohortInsights({ all: [], cohorts, today: '2026-09-07' }).find(x => x.title === '初回月による戻りやすさ')!;
+    expect(g.items[0].hint).toBe('→ 初回の時期による差は小さい');
+  });
+  it('初回月比較: 大きな母集団で差が3×SEを超えれば差ありと示唆', () => {
+    // 6月 400人中60人(15%) vs 8月 400人中20人(5%)。p=0.1, SE≈2.1pt → 閾値≈6.4pt < 10pt
+    const cohorts = [
+      { cohort: '2024-06', size: 400, retention: [], within3: 0, yearLater: 60 },
+      { cohort: '2024-08', size: 400, retention: [], within3: 0, yearLater: 20 },
+    ];
+    const g = buildCohortInsights({ all: [], cohorts, today: '2026-09-07' }).find(x => x.title === '初回月による戻りやすさ')!;
+    expect(g.items[0].hint).toBe('→ 繁忙期に初めて来た人ほど翌年に戻りにくい傾向');
+  });
+  it('新規客: 表示の % と hint が同じ式（219/200 → +9% で横ばい）', () => {
+    const all: HistoryRecord[] = [];
+    for (let i = 0; i < 200; i++) all.push(r('2025-06-01', `p${i}`));
+    for (let i = 0; i < 219; i++) all.push(r('2026-06-01', `c${i}`));
+    const g = buildCohortInsights({ all, cohorts: [], today: '2026-09-07' }).find(x => x.title === '直近の新規客')!;
+    expect(g.items[0].text).toContain('+9%');
+    expect(g.items[0].hint).toBe('→ 新規客はほぼ横ばい');
   });
 });
