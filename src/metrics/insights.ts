@@ -12,7 +12,7 @@ export interface InsightGroup { title: string; items: InsightItem[] }
 
 const WD = ['日', '月', '火', '水', '木', '金', '土'];
 const pct = (x: number) => `${Math.round(x * 100)}%`;
-const signedPct = (ratio: number) => { const d = Math.round((ratio - 1) * 100); return d === 0 ? '±0%' : `${d > 0 ? '+' : ''}${d}%`; };   // ratio=cur/prev
+export const signedPct = (ratio: number) => { const d = Math.round((ratio - 1) * 100); return d === 0 ? '±0%' : `${d > 0 ? '+' : ''}${d}%`; };   // ratio=cur/prev
 const yen = (n: number) => `${Math.round(n).toLocaleString('ja-JP')}円`;
 const signedYen = (n: number) => { const r = Math.round(n); return r === 0 ? '±0円' : `${r > 0 ? '+' : '-'}${Math.abs(r).toLocaleString('ja-JP')}円`; };
 const jaMonth = (ym: string) => `${Number(ym.slice(0, 4))}年${Number(ym.slice(5, 7))}月`;
